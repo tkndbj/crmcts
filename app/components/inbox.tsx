@@ -24,14 +24,15 @@ const auth = getAuth(firebaseApp);
 export default function Inbox() {
   // Controls the overall inbox modal visibility.
   const [isOpen, setIsOpen] = useState(false);
+
   // The selected chat user (object from Firestore).
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
-  // When no chat is active, show a list of users.
+
+  // Show a list of users when no chat is active.
   const [users, setUsers] = useState<any[]>([]);
-  // Flag to indicate whether the user list is loading.
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // Listen for auth state changes to get current user.
+  // Current authenticated user.
   const [currentUser, setCurrentUser] = useState<any>(null);
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -40,15 +41,16 @@ export default function Inbox() {
     return () => unsubscribe();
   }, []);
 
-  // Function to fetch the list of users from Firestore.
+  // Fetch the list of users from Firestore.
   const fetchUsers = () => {
     setLoadingUsers(true);
     const usersRef = collection(firestore, "users");
+
     const unsubscribe = onSnapshot(
       usersRef,
       (snapshot) => {
         const data = snapshot.docs.map((doc) => ({
-          // doc.id is Firestore's doc ID, but doc.data().uid might be the actual Auth UID
+          // doc.id = Firestore doc ID
           id: doc.id,
           ...doc.data(),
         }));
@@ -63,7 +65,7 @@ export default function Inbox() {
     return unsubscribe;
   };
 
-  // Load users when the modal opens (if no chat is selected).
+  // When the modal opens (and no user is selected yet), load users if not loaded.
   useEffect(() => {
     if (isOpen && !selectedChatUser && users.length === 0) {
       fetchUsers();
@@ -71,22 +73,23 @@ export default function Inbox() {
   }, [isOpen, selectedChatUser, users.length]);
 
   // ---------------------------
-  // Chat Window Component
+  // ChatWindow Component
   // ---------------------------
   const ChatWindow = ({ user }: { user: any }) => {
     const [chatId, setChatId] = useState<string | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
 
-    // 1. Create/retrieve a chat doc with participants = [currentUser.uid, user.uid]
+    // 1. Create or retrieve a chat doc with participants = [currentUser.uid, user.uid].
     useEffect(() => {
       if (!currentUser?.uid || !user?.uid) return;
 
-      // Make sure to use user.uid if that's the actual Auth UID.
+      // Sort the two UIDs to form a stable chatId.
       const sortedPair = [currentUser.uid, user.uid].sort();
       const generatedChatId = sortedPair.join("_");
       setChatId(generatedChatId);
 
+      // Create the chat doc if it doesn't exist yet.
       const chatRef = doc(firestore, "chats", generatedChatId);
       getDoc(chatRef).then(async (snapshot) => {
         if (!snapshot.exists()) {
@@ -98,7 +101,7 @@ export default function Inbox() {
       });
     }, [currentUser, user]);
 
-    // 2. Once we have chatId, subscribe to messages
+    // 2. Subscribe to messages in the chat
     useEffect(() => {
       if (!chatId) return;
 
@@ -127,6 +130,7 @@ export default function Inbox() {
         createdAt: serverTimestamp(),
       });
 
+      // Clear the input after sending
       setNewMessage("");
     };
 
@@ -138,9 +142,9 @@ export default function Inbox() {
     };
 
     return (
-      <div className="flex flex-col h-80">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex justify-between items-center border-b pb-2 mb-2">
+        <div className="flex items-center justify-between border-b pb-2 mb-2">
           <h3 className="text-lg font-bold">
             Chat with {user.displayName || user.email}
           </h3>
@@ -154,7 +158,7 @@ export default function Inbox() {
         </div>
 
         {/* Messages list */}
-        <div className="flex-1 overflow-y-auto space-y-2 mb-2">
+        <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-2">
           {messages.map((msg) => {
             const isMine = msg.sender === currentUser?.uid;
             return (
@@ -162,10 +166,10 @@ export default function Inbox() {
                 key={msg.id}
                 className={`flex ${
                   isMine ? "justify-end" : "justify-start"
-                } px-2`}
+                } px-1`}
               >
                 <div
-                  className={`rounded px-3 py-2 mb-1 max-w-xs ${
+                  className={`rounded px-3 py-2 mb-1 max-w-xs break-words ${
                     isMine
                       ? "bg-blue-500 text-white self-end"
                       : "bg-gray-200 text-gray-800 self-start"
@@ -207,6 +211,9 @@ export default function Inbox() {
     );
   };
 
+  // ---------------------------
+  // Main Inbox Return
+  // ---------------------------
   return (
     <>
       {/* Floating Inbox Button */}
@@ -214,6 +221,7 @@ export default function Inbox() {
         className="fixed bottom-6 right-6 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
         onClick={() => {
           setIsOpen(!isOpen);
+          // Reset chat selection when the modal is toggled
           setSelectedChatUser(null);
         }}
         title="Open Inbox"
@@ -231,11 +239,13 @@ export default function Inbox() {
             exit={{ opacity: 0, scale: 0.8, y: 50 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="flex justify-between items-center border-b px-4 py-2">
-                <h3 className="text-lg font-semibold">
-                  {selectedChatUser ? "Chat" : "Kullanıcılar"}
-                </h3>
+            {/* Outer Container - bigger and flexible */}
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md h-[500px] flex flex-col">
+              {/* Header (only shows "Kullanıcılar" if no user is selected) */}
+              <div className="flex items-center justify-between border-b px-4 py-2">
+                {!selectedChatUser && (
+                  <h3 className="text-lg font-semibold">Kullanıcılar</h3>
+                )}
                 <button
                   onClick={() => {
                     setIsOpen(false);
@@ -248,8 +258,9 @@ export default function Inbox() {
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="p-4 max-h-80 overflow-y-auto">
+              {/* Content area: fill the remaining space */}
+              <div className="flex-1 p-4 overflow-y-auto">
+                {/* If a user is selected, show ChatWindow; otherwise, show user list */}
                 {selectedChatUser ? (
                   <ChatWindow user={selectedChatUser} />
                 ) : (
@@ -264,7 +275,7 @@ export default function Inbox() {
                           key={user.id}
                           className="cursor-pointer p-2 hover:bg-gray-100 rounded"
                           onClick={() => {
-                            // IMPORTANT: Make sure user.uid exists in Firestore doc
+                            // Important: user.uid must be the Auth UID for correct chat
                             setSelectedChatUser(user);
                           }}
                         >

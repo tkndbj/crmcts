@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+// Force client-side rendering (no static or server rendering)
+export const dynamic = "force-dynamic";
+
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import {
   getFirestore,
   doc,
@@ -29,7 +32,7 @@ import {
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 
-export default function DynamicCustomerClient() {
+export default function DynamicCustomerPage() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
 
@@ -88,7 +91,7 @@ export default function DynamicCustomerClient() {
     return () => unsubscribe();
   }, [customerId]);
 
-  // When modal opens, fetch available units (filtering client‑side)
+  // When modal opens, fetch available units
   useEffect(() => {
     if (!modalOpen) return;
     const unitsRef = collection(firestore, "units");
@@ -132,6 +135,7 @@ export default function DynamicCustomerClient() {
 
   // Open edit modal prefilled with customer details
   const openEditModal = () => {
+    if (!customer) return;
     setEditForm({
       name: customer.name || "",
       email: customer.email || "",
@@ -144,15 +148,17 @@ export default function DynamicCustomerClient() {
   };
 
   const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
-  const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveEdit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!customer) return;
     setLoading(true);
     setError(null);
+
     try {
       const customerRef = doc(firestore, "customers", customer.id);
       await updateDoc(customerRef, {
@@ -176,7 +182,7 @@ export default function DynamicCustomerClient() {
   if (!customerId) {
     return (
       <div className="p-6">
-        <p>Müşteri seçilmedi. (e.g. ?id=abc123).</p>
+        <p>Müşteri seçilmedi. (e.g. ?id=abc123)</p>
       </div>
     );
   }
@@ -196,7 +202,7 @@ export default function DynamicCustomerClient() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header: Use customer's name as dashboard title with edit icon if owner */}
+        {/* Header */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {customer.name}
@@ -212,7 +218,7 @@ export default function DynamicCustomerClient() {
           )}
         </div>
 
-        {/* Customer Details Row - Compact */}
+        {/* Customer Details */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
           <div className="flex flex-wrap gap-2">
             {/* Email */}
@@ -266,7 +272,6 @@ export default function DynamicCustomerClient() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Rezervasyonlar
             </h2>
-            {/* Always show the plus icon */}
             <button
               onClick={() => setModalOpen(true)}
               className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors"
@@ -477,7 +482,7 @@ export default function DynamicCustomerClient() {
                     onChange={handleEditChange}
                     rows={2}
                     className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                  ></textarea>
+                  />
                 </div>
                 <div className="flex justify-end space-x-3 mt-3">
                   <button
