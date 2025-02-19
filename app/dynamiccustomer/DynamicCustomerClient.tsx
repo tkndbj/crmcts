@@ -29,7 +29,7 @@ import {
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 
-export default function DynamicCustomerPage() {
+export default function DynamicCustomerClient() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
 
@@ -75,7 +75,7 @@ export default function DynamicCustomerPage() {
       (snapshot) => {
         const allUnits = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...((doc.data() as any) || {}),
+          ...(doc.data() as any),
         }));
         const res = allUnits.filter(
           (unit) =>
@@ -97,7 +97,7 @@ export default function DynamicCustomerPage() {
       (snapshot) => {
         const allUnits = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...((doc.data() as any) || {}),
+          ...(doc.data() as any),
         }));
         const available = allUnits.filter((unit) => !unit.reservation);
         setAvailableUnits(available);

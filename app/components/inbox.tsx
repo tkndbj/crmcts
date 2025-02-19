@@ -24,7 +24,7 @@ const auth = getAuth(firebaseApp);
 export default function Inbox() {
   // Controls the overall inbox modal visibility.
   const [isOpen, setIsOpen] = useState(false);
-  // When a chat is active, selectedChatUser holds that user's data.
+  // The selected chat user (object from Firestore).
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
   // When no chat is active, show a list of users.
   const [users, setUsers] = useState<any[]>([]);
@@ -48,6 +48,7 @@ export default function Inbox() {
       usersRef,
       (snapshot) => {
         const data = snapshot.docs.map((doc) => ({
+          // doc.id is Firestore's doc ID, but doc.data().uid might be the actual Auth UID
           id: doc.id,
           ...doc.data(),
         }));
@@ -62,7 +63,7 @@ export default function Inbox() {
     return unsubscribe;
   };
 
-  // When the modal opens and no chat is active, load users if not loaded.
+  // Load users when the modal opens (if no chat is selected).
   useEffect(() => {
     if (isOpen && !selectedChatUser && users.length === 0) {
       fetchUsers();
@@ -77,29 +78,27 @@ export default function Inbox() {
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
 
-    // 1. Get (or create) a unique chat doc for currentUser and the selected user.
+    // 1. Create/retrieve a chat doc with participants = [currentUser.uid, user.uid]
     useEffect(() => {
-      if (!currentUser || !user?.id) return;
+      if (!currentUser?.uid || !user?.uid) return;
 
-      // Create a deterministic chatId from sorted user IDs
-      const sortedPair = [currentUser.uid, user.id].sort();
+      // Make sure to use user.uid if that's the actual Auth UID.
+      const sortedPair = [currentUser.uid, user.uid].sort();
       const generatedChatId = sortedPair.join("_");
       setChatId(generatedChatId);
 
-      // Create or verify the chat doc if it doesn't exist
       const chatRef = doc(firestore, "chats", generatedChatId);
-
       getDoc(chatRef).then(async (snapshot) => {
         if (!snapshot.exists()) {
           await setDoc(chatRef, {
-            participants: sortedPair, // or store as an array
+            participants: sortedPair,
             createdAt: serverTimestamp(),
           });
         }
       });
     }, [currentUser, user]);
 
-    // 2. Once we have chatId, subscribe to the messages subcollection
+    // 2. Once we have chatId, subscribe to messages
     useEffect(() => {
       if (!chatId) return;
 
@@ -117,7 +116,7 @@ export default function Inbox() {
       return () => unsubscribe();
     }, [chatId]);
 
-    // 3. Sending a new message
+    // 3. Send a new message
     const sendMessage = async () => {
       if (!newMessage.trim() || !chatId || !currentUser) return;
 
@@ -131,11 +130,11 @@ export default function Inbox() {
       setNewMessage("");
     };
 
-    // Simple helper to format timestamps
-    const formatTimestamp = (date: any) => {
-      if (!date) return "";
-      const d = date.toDate ? date.toDate() : date; // handle Firestore Timestamps
-      return d.toLocaleString();
+    // Helper to format timestamps
+    const formatTimestamp = (timestamp: any) => {
+      if (!timestamp) return "";
+      const date = timestamp.toDate ? timestamp.toDate() : timestamp;
+      return date.toLocaleString();
     };
 
     return (
@@ -182,7 +181,7 @@ export default function Inbox() {
           })}
         </div>
 
-        {/* Send message form */}
+        {/* Message input */}
         <div className="flex border-t pt-2">
           <input
             className="flex-1 border rounded-l px-2 py-1 text-sm focus:outline-none"
@@ -210,7 +209,7 @@ export default function Inbox() {
 
   return (
     <>
-      {/* Chat icon button fixed at bottom right */}
+      {/* Floating Inbox Button */}
       <button
         className="fixed bottom-6 right-6 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
         onClick={() => {
@@ -222,7 +221,7 @@ export default function Inbox() {
         <FiMessageSquare size={24} />
       </button>
 
-      {/* Inbox Modal positioned at bottom right */}
+      {/* Inbox Modal */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -264,7 +263,10 @@ export default function Inbox() {
                         <div
                           key={user.id}
                           className="cursor-pointer p-2 hover:bg-gray-100 rounded"
-                          onClick={() => setSelectedChatUser(user)}
+                          onClick={() => {
+                            // IMPORTANT: Make sure user.uid exists in Firestore doc
+                            setSelectedChatUser(user);
+                          }}
                         >
                           <p className="text-gray-700 text-sm font-semibold">
                             {user.displayName || user.email}
