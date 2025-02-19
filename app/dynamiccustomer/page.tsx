@@ -3,7 +3,13 @@
 // Force client-side rendering (no static or server rendering)
 export const dynamic = "force-dynamic";
 
-import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import {
   getFirestore,
   doc,
@@ -29,12 +35,21 @@ import {
   FiEdit,
 } from "react-icons/fi";
 
-const firestore = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
-
+// Wrap the content in a Suspense boundary to satisfy Next.js
 export default function DynamicCustomerPage() {
+  return (
+    <Suspense fallback={<div>Loading dynamic customer page...</div>}>
+      <DynamicCustomerContent />
+    </Suspense>
+  );
+}
+
+function DynamicCustomerContent() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
+
+  const firestore = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
 
   // Customer details and reservations
   const [customer, setCustomer] = useState<any>(null);
@@ -158,7 +173,6 @@ export default function DynamicCustomerPage() {
     if (!customer) return;
     setLoading(true);
     setError(null);
-
     try {
       const customerRef = doc(firestore, "customers", customer.id);
       await updateDoc(customerRef, {
