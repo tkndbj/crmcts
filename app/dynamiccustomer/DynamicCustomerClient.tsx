@@ -88,7 +88,7 @@ export default function DynamicCustomerClient() {
     return () => unsubscribe();
   }, [customerId]);
 
-  // When modal opens, fetch available units (filtering client‑side)
+  // When modal opens, fetch available units (client‑side filtering)
   useEffect(() => {
     if (!modalOpen) return;
     const unitsRef = collection(firestore, "units");
