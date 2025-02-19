@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import {
   getFirestore,
   doc,
@@ -10,8 +10,11 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
+import "../globals.css";
+
 import { useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FiPlus,
   FiMail,
@@ -23,16 +26,14 @@ import {
   FiEdit,
 } from "react-icons/fi";
 
-import "../globals.css";
+const firestore = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
 
-export default function SearchParamsClient() {
-  const firestore = getFirestore(firebaseApp);
-  const auth = getAuth(firebaseApp);
-
-  // We can finally useSearchParams() here
+export default function DynamicCustomerClient() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
 
+  // Customer details and reservations
   const [customer, setCustomer] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
@@ -40,7 +41,7 @@ export default function SearchParamsClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit modal
+  // Edit modal state for customer
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -51,7 +52,7 @@ export default function SearchParamsClient() {
     description: "",
   });
 
-  // 1. Fetch customer details
+  // Fetch customer details
   useEffect(() => {
     if (!customerId) return;
     const customerRef = doc(firestore, "customers", customerId);
@@ -63,9 +64,9 @@ export default function SearchParamsClient() {
       }
     });
     return () => unsubscribe();
-  }, [customerId, firestore]);
+  }, [customerId]);
 
-  // 2. Listen for units reserved
+  // Listen for units reserved for this customer
   useEffect(() => {
     if (!customerId) return;
     const unitsRef = collection(firestore, "units");
@@ -85,9 +86,9 @@ export default function SearchParamsClient() {
       (err) => console.error(err)
     );
     return () => unsubscribe();
-  }, [customerId, firestore]);
+  }, [customerId]);
 
-  // 3. Fetch available units when modal opens
+  // When modal opens, fetch available units (filtering client‑side)
   useEffect(() => {
     if (!modalOpen) return;
     const unitsRef = collection(firestore, "units");
@@ -104,10 +105,10 @@ export default function SearchParamsClient() {
       (err) => console.error(err)
     );
     return () => unsubscribe();
-  }, [modalOpen, firestore]);
+  }, [modalOpen]);
 
-  // 4. Reserve a unit
-  async function handleReserveUnit(unit: any) {
+  // Reserve a unit for this customer
+  const handleReserveUnit = async (unit: any) => {
     if (!customer) return;
     setLoading(true);
     setError(null);
@@ -127,11 +128,10 @@ export default function SearchParamsClient() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // 5. Edit modal
-  function openEditModal() {
-    if (!customer) return;
+  // Open edit modal prefilled with customer details
+  const openEditModal = () => {
     setEditForm({
       name: customer.name || "",
       email: customer.email || "",
@@ -141,17 +141,16 @@ export default function SearchParamsClient() {
       description: customer.description || "",
     });
     setEditModalOpen(true);
-  }
+  };
 
-  function handleEditChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  }
+  };
 
-  async function handleSaveEdit(e: FormEvent<HTMLFormElement>) {
+  const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!customer) return;
     setLoading(true);
     setError(null);
     try {
@@ -172,13 +171,12 @@ export default function SearchParamsClient() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // 6. Handle no customerId or no data
   if (!customerId) {
     return (
       <div className="p-6">
-        <p>Müşteri seçilmedi. (e.g. ?id=abc123)</p>
+        <p>Müşteri seçilmedi. (e.g. ?id=abc123).</p>
       </div>
     );
   }
@@ -191,15 +189,14 @@ export default function SearchParamsClient() {
     );
   }
 
-  // 7. Are we the owner?
+  // Determine if the current user is the owner (added by)
   const currentUser = auth.currentUser;
   const isOwner = currentUser && customer.owner === currentUser.uid;
 
-  // 8. Render everything
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
+        {/* Header: Use customer's name as dashboard title with edit icon if owner */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {customer.name}
@@ -215,26 +212,61 @@ export default function SearchParamsClient() {
           )}
         </div>
 
-        {/* Customer Details */}
+        {/* Customer Details Row - Compact */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
           <div className="flex flex-wrap gap-2">
-            {/* ... same as your code, e.g. email, phone, etc. */}
+            {/* Email */}
             <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
               <FiMail className="text-blue-500 mr-1" />
               <span className="text-gray-700 dark:text-gray-200 text-sm">
                 {customer.email}
               </span>
             </div>
-            {/* Etc... */}
+            {/* Phone */}
+            <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
+              <FiPhone className="text-blue-500 mr-1" />
+              <span className="text-gray-700 dark:text-gray-200 text-sm">
+                {customer.phone || "N/A"}
+              </span>
+            </div>
+            {/* Address */}
+            <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
+              <FiMapPin className="text-blue-500 mr-1" />
+              <span className="text-gray-700 dark:text-gray-200 text-sm">
+                {customer.address || "N/A"}
+              </span>
+            </div>
+            {/* Last Call Date */}
+            <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
+              <FiCalendar className="text-blue-500 mr-1" />
+              <span className="text-gray-700 dark:text-gray-200 text-sm">
+                {customer.lastCallDate || "N/A"}
+              </span>
+            </div>
+            {/* Added By */}
+            <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
+              <FiUser className="text-blue-500 mr-1" />
+              <span className="text-gray-700 dark:text-gray-200 text-sm">
+                {customer.ownerName || "N/A"}
+              </span>
+            </div>
+            {/* Description */}
+            <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-2 flex-1 min-w-[120px]">
+              <FiFileText className="text-blue-500 mr-1" />
+              <span className="text-gray-700 dark:text-gray-200 text-sm">
+                {customer.description || "N/A"}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Reservations */}
+        {/* Reservations Section */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Rezervasyonlar
             </h2>
+            {/* Always show the plus icon */}
             <button
               onClick={() => setModalOpen(true)}
               className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors"
@@ -246,13 +278,18 @@ export default function SearchParamsClient() {
           {reservations.length > 0 ? (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {reservations.map((unit) => (
-                <div key={unit.id} className="py-2 flex flex-col md:flex-row">
-                  <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
-                    {unit.name}
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-300 text-xs">
-                    {unit.project} – {unit.streetName} {unit.number}
-                  </p>
+                <div
+                  key={unit.id}
+                  className="py-2 flex flex-col md:flex-row justify-between items-start md:items-center"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                      {unit.name}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs">
+                      {unit.project} – {unit.streetName} {unit.number}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -279,12 +316,14 @@ export default function SearchParamsClient() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             />
             <motion.div
               className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 z-10 w-full max-w-lg"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
             >
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 Konut rezerve et
@@ -345,12 +384,14 @@ export default function SearchParamsClient() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             />
             <motion.div
               className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 z-10 w-full max-w-2xl"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
             >
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 Müşteri güncelle
@@ -362,7 +403,98 @@ export default function SearchParamsClient() {
               )}
               {loading && <p className="text-sm">İşleniyor...</p>}
               <form onSubmit={handleSaveEdit} className="space-y-3">
-                {/* ... etc ... */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    İsim
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditChange}
+                    required
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={editForm.email}
+                    onChange={handleEditChange}
+                    required
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Numara
+                  </label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditChange}
+                    required
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Adres
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={editForm.address}
+                    onChange={handleEditChange}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Son Arama Tarihi
+                  </label>
+                  <input
+                    type="text"
+                    name="lastCallDate"
+                    placeholder="DD/MM/YYYY"
+                    value={editForm.lastCallDate}
+                    onChange={handleEditChange}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Açıklama
+                  </label>
+                  <textarea
+                    name="description"
+                    value={editForm.description}
+                    onChange={handleEditChange}
+                    rows={2}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  ></textarea>
+                </div>
+                <div className="flex justify-end space-x-3 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditModalOpen(false)}
+                    className="px-3 py-1 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm text-gray-900 dark:text-gray-100"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+                  >
+                    {loading ? "Güncelleniyor..." : "Müşteri güncelle"}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </motion.div>
