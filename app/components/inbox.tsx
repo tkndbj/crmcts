@@ -22,32 +22,26 @@ const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 
 export default function Inbox() {
-  // Controls the overall inbox modal visibility.
   const [isOpen, setIsOpen] = useState(false);
-  // The selected chat user (object from Firestore).
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
-  // Show a list of users when no chat is active.
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  // Current authenticated user.
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
+    const unsub = auth.onAuthStateChanged((user) => setCurrentUser(user));
+    return () => unsub();
   }, []);
 
-  // Fetch the list of users from Firestore.
+  /** Fetch all users (once) when the inbox is opened */
   const fetchUsers = () => {
     setLoadingUsers(true);
     const usersRef = collection(firestore, "users");
-    const unsubscribe = onSnapshot(
+    const unsub = onSnapshot(
       usersRef,
       (snapshot) => {
         const data = snapshot.docs.map((doc) => ({
-          id: doc.id, // Firestore document ID
+          id: doc.id,
           ...doc.data(),
         }));
         setUsers(data);
@@ -58,10 +52,9 @@ export default function Inbox() {
         setLoadingUsers(false);
       }
     );
-    return unsubscribe;
+    return unsub;
   };
 
-  // When the modal opens (and no chat is selected), load users if not already loaded.
   useEffect(() => {
     if (isOpen && !selectedChatUser && users.length === 0) {
       fetchUsers();
@@ -76,47 +69,59 @@ export default function Inbox() {
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
 
-    // 1. Create or retrieve a chat doc with participants = [currentUser.uid, user.uid].
     useEffect(() => {
       if (!currentUser?.uid || !user) return;
-      // Use user.uid if available; otherwise fallback to user.id.
+
+      // This is the other user's actual Auth UID if it exists, or else fallback to doc.id
+      // Make sure that doc.id IS the Auth UID if there's no user.uid
       const otherUid = user.uid || user.id;
       const sortedPair = [currentUser.uid, otherUid].sort();
       const generatedChatId = sortedPair.join("_");
-      const chatRef = doc(firestore, "chats", generatedChatId);
 
-      // Check if the chat document exists and create it if it doesn't.
-      getDoc(chatRef).then(async (snapshot) => {
-        if (!snapshot.exists()) {
-          await setDoc(chatRef, {
-            participants: sortedPair,
-            createdAt: serverTimestamp(),
-          });
+      async function createOrGetChat() {
+        try {
+          const chatRef = doc(firestore, "chats", generatedChatId);
+          const snap = await getDoc(chatRef);
+          if (!snap.exists()) {
+            await setDoc(chatRef, {
+              participants: sortedPair,
+              createdAt: serverTimestamp(),
+            });
+          }
+          // Only after the doc definitely exists, set the chatId
+          setChatId(generatedChatId);
+        } catch (err) {
+          console.error("Error creating/fetching chat doc:", err);
         }
-        // Only set the chatId after ensuring the chat document exists.
-        setChatId(generatedChatId);
-      });
+      }
+
+      createOrGetChat();
     }, [currentUser, user]);
 
-    // 2. Subscribe to messages in the chat.
+    /**
+     * Subscribe to messages ONLY after we have a valid chatId
+     * and the parent doc definitely exists.
+     */
     useEffect(() => {
       if (!chatId) return;
       const messagesRef = collection(firestore, "chats", chatId, "messages");
       const q = query(messagesRef, orderBy("createdAt", "asc"));
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsub = onSnapshot(q, (snapshot) => {
         const msgs = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         setMessages(msgs);
       });
-      return () => unsubscribe();
+
+      return () => unsub();
     }, [chatId]);
 
-    // 3. Send a new message.
+    /** Send a new message */
     const sendMessage = async () => {
-      if (!newMessage.trim() || !chatId || !currentUser) return;
+      if (!newMessage.trim() || !chatId || !currentUser?.uid) return;
+
       try {
         const messagesRef = collection(firestore, "chats", chatId, "messages");
         await addDoc(messagesRef, {
@@ -130,22 +135,20 @@ export default function Inbox() {
       }
     };
 
-    // Handle form submission.
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       sendMessage();
     };
 
-    // Helper to format timestamps.
-    const formatTimestamp = (timestamp: any) => {
-      if (!timestamp) return "";
-      const date = timestamp.toDate ? timestamp.toDate() : timestamp;
-      return date.toLocaleString();
+    const formatTimestamp = (ts: any) => {
+      if (!ts) return "";
+      const d = ts.toDate ? ts.toDate() : ts;
+      return d.toLocaleString();
     };
 
     return (
       <div className="flex flex-col h-full">
-        {/* ChatWindow Header with Back Arrow */}
+        {/* Header */}
         <div className="flex items-center justify-between border-b pb-2 mb-2">
           <button
             onClick={() => setSelectedChatUser(null)}
@@ -157,11 +160,10 @@ export default function Inbox() {
           <h3 className="text-lg font-bold flex-1 text-center">
             Chat with {user.displayName || user.email}
           </h3>
-          {/* Placeholder for symmetry */}
-          <div className="w-6" />
+          <div className="w-6" /> {/* placeholder for symmetry */}
         </div>
 
-        {/* Messages list */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-2">
           {messages.map((msg) => {
             const isMine = msg.sender === currentUser?.uid;
@@ -189,7 +191,7 @@ export default function Inbox() {
           })}
         </div>
 
-        {/* Message input wrapped in a form */}
+        {/* Input */}
         <form onSubmit={handleSubmit} className="flex border-t pt-2">
           <input
             className="flex-1 border rounded-l px-2 py-1 text-sm focus:outline-none"
@@ -210,11 +212,11 @@ export default function Inbox() {
   };
 
   // ---------------------------
-  // Main Inbox Return
+  // Main Return
   // ---------------------------
   return (
     <>
-      {/* Floating Inbox Button */}
+      {/* Inbox Button */}
       <button
         className="fixed bottom-6 right-6 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
         onClick={() => {
@@ -226,7 +228,7 @@ export default function Inbox() {
         <FiMessageSquare size={24} />
       </button>
 
-      {/* Inbox Modal */}
+      {/* Modal */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -236,9 +238,7 @@ export default function Inbox() {
             exit={{ opacity: 0, scale: 0.8, y: 50 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Outer Container with a wider width */}
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[500px] flex flex-col">
-              {/* Global Modal Header (only shown when no chat is selected) */}
               {!selectedChatUser && (
                 <div className="flex items-center justify-between border-b px-4 py-2">
                   <h3 className="text-lg font-semibold">Kullanıcılar</h3>
@@ -255,7 +255,6 @@ export default function Inbox() {
                 </div>
               )}
 
-              {/* Content area */}
               <div className="flex-1 p-4 overflow-y-auto">
                 {selectedChatUser ? (
                   <ChatWindow user={selectedChatUser} />
@@ -266,22 +265,22 @@ export default function Inbox() {
                         Kullanıcılar yükleniyor...
                       </p>
                     ) : (
-                      users.map((user) => (
+                      users.map((u) => (
                         <div
-                          key={user.id}
+                          key={u.id}
                           className="cursor-pointer p-2 hover:bg-gray-100 rounded"
                           onClick={() => {
-                            // Ensure that the user document includes a `uid` field.
-                            setSelectedChatUser(user);
+                            setSelectedChatUser(u);
                           }}
                         >
                           <p className="text-gray-700 text-sm font-semibold">
-                            {user.displayName || user.email}
+                            {u.displayName || u.email}
                           </p>
                         </div>
                       ))
                     )}
-                    {users.length === 0 && !loadingUsers && (
+
+                    {!loadingUsers && users.length === 0 && (
                       <p className="text-gray-600 text-sm">
                         Kullanıcı bulunamadı.
                       </p>

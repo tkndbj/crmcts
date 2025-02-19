@@ -1,16 +1,36 @@
 "use client";
 
-// Force client-side rendering (no static pre-rendering)
+// Force no server-side rendering for this page
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import React, {
-  Suspense,
-  useState,
-  useEffect,
-  ChangeEvent,
-  FormEvent,
-} from "react";
+import nextDynamic from "next/dynamic";
+import React from "react";
+
+/**
+ * We dynamically import our main page logic with ssr: false.
+ * This prevents Next.js from attempting any SSR or static generation,
+ * thus avoiding the "useSearchParams must be in a suspense boundary" error.
+ */
+const DynamicImplementation = nextDynamic(
+  () => Promise.resolve(DynamicCustomerContent),
+  {
+    ssr: false,
+  }
+);
+
+/**
+ * The default export is a simple component that renders our
+ * dynamically-imported content.
+ */
+export default function DynamicCustomerPage() {
+  return <DynamicImplementation />;
+}
+
+/* ------------------------------------------------------------------
+   ALL YOUR EXISTING LOGIC GOES INSIDE THIS FUNCTION BELOW.
+   It's just a normal React component, but we never SSR it.
+------------------------------------------------------------------- */
 import {
   getFirestore,
   doc,
@@ -21,10 +41,8 @@ import {
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
 import "../globals.css";
-
 import { useSearchParams } from "next/navigation";
-
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   FiPlus,
   FiMail,
@@ -36,38 +54,25 @@ import {
   FiEdit,
 } from "react-icons/fi";
 
-// Top-level page simply wraps the search-params consumer in a Suspense boundary.
-export default function DynamicCustomerPage() {
-  return (
-    <Suspense fallback={<div>Loading dynamic customer page...</div>}>
-      <SearchParamsConsumer />
-    </Suspense>
-  );
-}
-
-// This component calls useSearchParams() and passes the customerId to the main content.
-function SearchParamsConsumer() {
-  const searchParams = useSearchParams();
-  const customerId = searchParams.get("id");
-  return <DynamicCustomerContent customerId={customerId} />;
-}
-
-// All of your original logic now uses the customerId passed in as a prop.
-function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
+function DynamicCustomerContent() {
   const firestore = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
 
-  // Customer details and reservations
-  const [customer, setCustomer] = useState<any>(null);
-  const [reservations, setReservations] = useState<any[]>([]);
-  const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Grab query parameter from the URL
+  const searchParams = useSearchParams();
+  const customerId = searchParams.get("id");
 
-  // Edit modal state for customer
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({
+  // Customer details and reservations
+  const [customer, setCustomer] = React.useState<any>(null);
+  const [reservations, setReservations] = React.useState<any[]>([]);
+  const [availableUnits, setAvailableUnits] = React.useState<any[]>([]);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [editForm, setEditForm] = React.useState({
     name: "",
     email: "",
     phone: "",
@@ -77,7 +82,7 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
   });
 
   // Fetch customer details
-  useEffect(() => {
+  React.useEffect(() => {
     if (!customerId) return;
     const customerRef = doc(firestore, "customers", customerId);
     const unsubscribe = onSnapshot(customerRef, (docSnapshot) => {
@@ -88,10 +93,10 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
       }
     });
     return () => unsubscribe();
-  }, [customerId]);
+  }, [customerId, firestore]);
 
   // Listen for units reserved for this customer
-  useEffect(() => {
+  React.useEffect(() => {
     if (!customerId) return;
     const unitsRef = collection(firestore, "units");
     const unsubscribe = onSnapshot(
@@ -110,10 +115,10 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
       (err) => console.error(err)
     );
     return () => unsubscribe();
-  }, [customerId]);
+  }, [customerId, firestore]);
 
   // When modal opens, fetch available units
-  useEffect(() => {
+  React.useEffect(() => {
     if (!modalOpen) return;
     const unitsRef = collection(firestore, "units");
     const unsubscribe = onSnapshot(
@@ -129,10 +134,10 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
       (err) => console.error(err)
     );
     return () => unsubscribe();
-  }, [modalOpen]);
+  }, [modalOpen, firestore]);
 
   // Reserve a unit for this customer
-  const handleReserveUnit = async (unit: any) => {
+  async function handleReserveUnit(unit: any) {
     if (!customer) return;
     setLoading(true);
     setError(null);
@@ -152,10 +157,10 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // Open edit modal prefilled with customer details
-  const openEditModal = () => {
+  function openEditModal() {
     if (!customer) return;
     setEditForm({
       name: customer.name || "",
@@ -166,15 +171,15 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
       description: customer.description || "",
     });
     setEditModalOpen(true);
-  };
+  }
 
-  const handleEditChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  function handleEditChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  };
+  }
 
-  const handleSaveEdit = async (e: FormEvent<HTMLFormElement>) => {
+  async function handleSaveEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!customer) return;
     setLoading(true);
@@ -197,7 +202,7 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   if (!customerId) {
     return (
@@ -215,7 +220,7 @@ function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
     );
   }
 
-  // Determine if the current user is the owner (added by)
+  // Determine if current user is the owner
   const currentUser = auth.currentUser;
   const isOwner = currentUser && customer.owner === currentUser.uid;
 
