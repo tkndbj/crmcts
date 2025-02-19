@@ -83,9 +83,9 @@ export default function Inbox() {
       const otherUid = user.uid || user.id;
       const sortedPair = [currentUser.uid, otherUid].sort();
       const generatedChatId = sortedPair.join("_");
-      setChatId(generatedChatId);
-
       const chatRef = doc(firestore, "chats", generatedChatId);
+
+      // Check if the chat document exists and create it if it doesn't.
       getDoc(chatRef).then(async (snapshot) => {
         if (!snapshot.exists()) {
           await setDoc(chatRef, {
@@ -93,6 +93,8 @@ export default function Inbox() {
             createdAt: serverTimestamp(),
           });
         }
+        // Only set the chatId after ensuring the chat document exists.
+        setChatId(generatedChatId);
       });
     }, [currentUser, user]);
 

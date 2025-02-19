@@ -1,7 +1,8 @@
 "use client";
 
-// Force client-side rendering (no static or server rendering)
+// Force client-side rendering (no static pre-rendering)
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import React, {
   Suspense,
@@ -35,19 +36,24 @@ import {
   FiEdit,
 } from "react-icons/fi";
 
-// Wrap the content in a Suspense boundary to satisfy Next.js
+// Top-level page simply wraps the search-params consumer in a Suspense boundary.
 export default function DynamicCustomerPage() {
   return (
     <Suspense fallback={<div>Loading dynamic customer page...</div>}>
-      <DynamicCustomerContent />
+      <SearchParamsConsumer />
     </Suspense>
   );
 }
 
-function DynamicCustomerContent() {
+// This component calls useSearchParams() and passes the customerId to the main content.
+function SearchParamsConsumer() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
+  return <DynamicCustomerContent customerId={customerId} />;
+}
 
+// All of your original logic now uses the customerId passed in as a prop.
+function DynamicCustomerContent({ customerId }: { customerId: string | null }) {
   const firestore = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
 
