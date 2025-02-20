@@ -17,7 +17,13 @@ import { useRouter } from "next/navigation";
 // Import Framer Motion components
 import { motion, AnimatePresence } from "framer-motion";
 // Import React Icons (Feather Icons)
-import { FiEdit, FiTrash2, FiMessageSquare, FiUser } from "react-icons/fi";
+import {
+  FiEdit,
+  FiTrash2,
+  FiMessageSquare,
+  FiUser,
+  FiMail,
+} from "react-icons/fi";
 
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -72,6 +78,13 @@ export default function CustomersPage() {
   // New state for Customer Information Modal
   const [customerInfoModalOpen, setCustomerInfoModalOpen] = useState(false);
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState<any>(null);
+
+  // New state for Email Modal
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any>(null);
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Fetch customers live
   useEffect(() => {
@@ -224,6 +237,45 @@ export default function CustomersPage() {
     setCustomerInfoModalOpen(true);
   };
 
+  // New function: Handle clicking on email icon to open email modal
+  const handleEmailIconClick = (customer: any) => {
+    setSelectedEmailCustomer(customer);
+    setEmailMessage("");
+    setEmailModalOpen(true);
+  };
+
+  // New function: Handle sending email via your Gmail API endpoint
+  const handleSendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setEmailError(null);
+    setEmailSending(true);
+    try {
+      const response = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: selectedEmailCustomer.email,
+          message: emailMessage,
+          subject: "Message from CRMCTS", // Adjust subject as needed
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+      // Email sent successfully – close the modal
+      setEmailModalOpen(false);
+      setSelectedEmailCustomer(null);
+      setEmailMessage("");
+    } catch (err: any) {
+      console.error("Error sending email:", err);
+      setEmailError(err.message || "Error sending email");
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   // Filter customers based on activeTab
   const displayedCustomers =
     activeTab === "genel"
@@ -323,7 +375,7 @@ export default function CustomersPage() {
                     <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
                       {isOwner(customer) && (
                         <div className="flex items-center justify-center space-x-2">
-                          {/* Note Icon appears first if description exists */}
+                          {/* Description Icon */}
                           {customer.description && (
                             <div className="relative inline-block">
                               <button
@@ -371,6 +423,17 @@ export default function CustomersPage() {
                             className="text-red-500 hover:text-red-700 transition-colors"
                           >
                             <FiTrash2 size={20} />
+                          </button>
+                          {/* Email Icon */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEmailIconClick(customer);
+                            }}
+                            title="Send Email"
+                            className="text-green-500 hover:text-green-700 transition-colors"
+                          >
+                            <FiMail size={20} />
                           </button>
                         </div>
                       )}
@@ -617,6 +680,97 @@ export default function CustomersPage() {
                   Close
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Modal */}
+      <AnimatePresence>
+        {emailModalOpen && selectedEmailCustomer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-50"
+          >
+            {/* Dimmed Background */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-black"
+              onClick={() => setEmailModalOpen(false)}
+            ></motion.div>
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-lg"
+            >
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                Send Email
+              </h2>
+              {emailError && (
+                <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+                  {emailError}
+                </div>
+              )}
+              <form onSubmit={handleSendEmail} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    From:
+                  </label>
+                  <input
+                    type="email"
+                    value={auth.currentUser?.email || ""}
+                    readOnly
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    To:
+                  </label>
+                  <input
+                    type="email"
+                    value={selectedEmailCustomer.email}
+                    readOnly
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Message:
+                  </label>
+                  <textarea
+                    value={emailMessage}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    required
+                    rows={4}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  ></textarea>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setEmailModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={emailSending}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                  >
+                    {emailSending ? "Sending..." : "Send Email"}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

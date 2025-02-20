@@ -57,8 +57,19 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="bg-white p-10 rounded-xl shadow-lg w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center p-6">
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/video1.mp4" type="video/mp4" />
+      </video>
+
+      {/* Login Card */}
+      <div className="relative z-10 bg-white p-10 rounded-xl shadow-lg w-full max-w-md">
         <h2 className="text-3xl font-bold text-center mb-8">Giriş Yap</h2>
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
