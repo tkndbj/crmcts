@@ -1,9 +1,36 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import "../globals.css";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import firebaseApp from "../../firebaseClient";
+
+const firestore = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 export default function NavigationPage() {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        const userDoc = await getDoc(doc(firestore, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().isAdmin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    });
+    return () => unsub();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 flex flex-col items-center py-12 px-4">
       <div className="w-full max-w-4xl">
@@ -95,6 +122,30 @@ export default function NavigationPage() {
               </span>
             </div>
           </Link>
+          {/* Extra card for admins */}
+          {isAdmin && (
+            <Link href="/admin">
+              <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10 text-red-500 mr-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m8-1a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+                <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
+                  Kullanıcılar
+                </span>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </div>

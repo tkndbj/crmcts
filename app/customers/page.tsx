@@ -17,13 +17,7 @@ import { useRouter } from "next/navigation";
 // Import Framer Motion components
 import { motion, AnimatePresence } from "framer-motion";
 // Import React Icons (Feather Icons)
-import {
-  FiEdit,
-  FiTrash2,
-  FiMessageSquare,
-  FiUser,
-  FiMail,
-} from "react-icons/fi";
+import { FiEdit, FiTrash2, FiClipboard, FiUser, FiMail } from "react-icons/fi";
 
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -89,8 +83,12 @@ export default function CustomersPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Müşterileri canlı olarak getir
+  // Müşterileri canlı olarak getir with caching mechanism
   useEffect(() => {
+    const cachedData = localStorage.getItem("customersCache");
+    if (cachedData) {
+      setCustomers(JSON.parse(cachedData));
+    }
     const customersRef = collection(firestore, "customers");
     const unsubscribe = onSnapshot(
       customersRef,
@@ -100,6 +98,7 @@ export default function CustomersPage() {
           ...doc.data(),
         }));
         setCustomers(customersData);
+        localStorage.setItem("customersCache", JSON.stringify(customersData));
       },
       (err) => {
         console.error(err);
@@ -363,8 +362,18 @@ export default function CustomersPage() {
                         {customer.name}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {customer.email}
+                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEmailIconClick(customer);
+                        }}
+                        title="E-posta Gönder"
+                        className="text-green-500 hover:text-green-700 transition-colors"
+                      >
+                        <FiMail size={20} />
+                      </button>
+                      <span>{customer.email}</span>
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                       {customer.phone}
@@ -385,10 +394,10 @@ export default function CustomersPage() {
                                   : customer.id
                               );
                             }}
-                            title="Açıklamayı Gör"
+                            title="Notu Gör"
                             className="text-gray-500 hover:text-gray-700 transition-colors"
                           >
-                            <FiMessageSquare size={20} />
+                            <FiClipboard size={20} />
                           </button>
                           <AnimatePresence>
                             {tooltipCustomerId === customer.id && (
@@ -398,24 +407,13 @@ export default function CustomersPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[400px] whitespace-normal"
+                                className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[600px] whitespace-normal"
                               >
                                 {customer.description || "Açıklama yok"}
                               </motion.div>
                             )}
                           </AnimatePresence>
                         </div>
-                        {/* E-posta İkonu – her zaman göster */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEmailIconClick(customer);
-                          }}
-                          title="E-posta Gönder"
-                          className="text-green-500 hover:text-green-700 transition-colors"
-                        >
-                          <FiMail size={20} />
-                        </button>
                         {/* Sadece sahibi için: Düzenle ve Sil */}
                         {isOwner(customer) && (
                           <>

@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     (tokens as any).email = userInfo.email; // Attach the email to tokens
 
     // Create a response and set the tokens in an HTTP-only cookie...
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    const response = NextResponse.redirect(new URL("/customers", request.url));
     response.cookies.set("google-tokens", JSON.stringify(tokens), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
