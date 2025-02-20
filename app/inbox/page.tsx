@@ -16,8 +16,8 @@ type Email = {
   from: string;
   to?: string;
   subject: string;
-  date: string;
-  body: string;
+  date: string; // e.g., ISO string or anything parseable by new Date()
+  body: string; // plain text body for display
 };
 
 type User = {
@@ -26,7 +26,11 @@ type User = {
   name: string;
 };
 
-// Simple in-memory cache for emails
+/**
+ * Simple in-memory cache for emails: 
+ *  - 'inbox': Email[] 
+ *  - 'sent': Email[] 
+ */
 const emailCache: { [key: string]: Email[] | null } = {
   inbox: null,
   sent: null,
@@ -36,23 +40,52 @@ export default function InboxPage() {
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+
+  // Compose / reply / forward modals
   const [composeOpen, setComposeOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+
   const [emailForm, setEmailForm] = useState({
     to: "",
     subject: "",
     body: "",
   });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+
+  // Read states: track which emails have been read. Persist in localStorage.
   const [readEmailIds, setReadEmailIds] = useState<string[]>([]);
 
-  // Keep a ref to our interval for cleanup
+  // A simple loading flag to avoid flickers on the "sent" tab especially
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // Keep a ref to our polling interval so we can clear it on unmount
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch real users from Firestore for forward selection.
+  // 1) Load readEmailIds from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("readEmailIds");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setReadEmailIds(parsed);
+        }
+      } catch {
+        // fail silently if JSON.parse fails
+      }
+    }
+  }, []);
+
+  // 2) Whenever readEmailIds changes, save to localStorage
+  useEffect(() => {
+    localStorage.setItem("readEmailIds", JSON.stringify(readEmailIds));
+  }, [readEmailIds]);
+
+  // Fetch real users from Firestore for forwarding
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -72,63 +105,85 @@ export default function InboxPage() {
     fetchUsers();
   }, []);
 
-  // Reusable function to fetch emails with caching
+  /**
+   * Reusable function to fetch emails with caching.
+   * - Shows cached data immediately if present.
+   * - Then fetches fresh data from the server (no flicker if we have cached data).
+   */
   async function fetchEmailsWithCache(tab: "inbox" | "sent") {
-    // If we have cached data, set state immediately for faster UI
+    setLoading(true);
+
+    // If we have cached data, use it immediately
     if (emailCache[tab]) {
       setEmails(emailCache[tab]!);
+      setError(null);
+    } else {
+      // If no cache yet, we can optionally clear or show a spinner
+      setEmails([]);
     }
 
     try {
       // e.g., show at least the latest 50 emails
-      // Your backend should support this (or you can pass ?limit=50, etc.)
+      // Ensure your backend supports ?limit=50 or returns 50 by default
       const endpoint =
         tab === "inbox"
           ? "/api/gmail/inbox?limit=50"
           : "/api/gmail/sent?limit=50";
 
       const res = await fetch(endpoint);
-      // If the response is an HTML error page, it may throw a JSON parse error
-      const data = await res.json();
-
+      // If the response might be HTML on error, it can break .json()
+      // So let's do a check or a try-catch
       if (!res.ok) {
-        setError(data.error || "E-postalar alınamadı.");
+        let data: any = null;
+        try {
+          data = await res.json();
+        } catch {
+          // if fails, data stays null
+        }
+        setError(data?.error || "E-postalar alınamadı.");
         setEmails([]);
+        emailCache[tab] = null; // remove stale cache
+        setLoading(false);
         return;
       }
 
+      const data = await res.json();
       if (Array.isArray(data)) {
-        // Update cache and state
+        // update cache and state
         emailCache[tab] = data;
         setEmails(data);
         setError(null);
       } else {
         setError("Beklenmeyen veri formatı alındı.");
+        emailCache[tab] = null;
+        setEmails([]);
       }
     } catch (err: any) {
       console.error("E-postalar alınırken hata:", err);
       setError("E-postalar alınırken hata oluştu.");
+      emailCache[tab] = null;
+      setEmails([]);
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Fetch emails on activeTab change (with caching)
+  // On activeTab change, fetch new data (and display cached if available)
   useEffect(() => {
     fetchEmailsWithCache(activeTab);
-
     // Clear the selected email each time we switch tabs
     setSelectedEmail(null);
   }, [activeTab]);
 
-  // Polling approach for live data update every 30 seconds
+  // Polling approach: re-fetch every 30 seconds for "live" updates
   useEffect(() => {
+    // clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-
     intervalRef.current = setInterval(() => {
-      // Re-fetch emails to keep data in sync
       fetchEmailsWithCache(activeTab);
-    }, 30000); // 30 seconds
+    }, 30000);
 
     return () => {
       if (intervalRef.current) {
@@ -137,20 +192,17 @@ export default function InboxPage() {
     };
   }, [activeTab]);
 
-  // Filter emails based on search query.
+  // Filter emails based on search query
   const filteredEmails = emails.filter((email) => {
-    const subjectMatch = email.subject
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const fromMatch =
-      email.from && email.from.toLowerCase().includes(searchQuery.toLowerCase());
-    const toMatch =
-      email.to && email.to.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return subjectMatch || fromMatch || toMatch;
+    const query = searchQuery.toLowerCase();
+    return (
+      email.subject.toLowerCase().includes(query) ||
+      (email.from && email.from.toLowerCase().includes(query)) ||
+      (email.to && email.to.toLowerCase().includes(query))
+    );
   });
 
-  // Mark email as read
+  // Mark an email as read (persist locally & in localStorage)
   const markAsRead = (emailId: string) => {
     setReadEmailIds((prev) => {
       if (prev.includes(emailId)) return prev;
@@ -158,14 +210,13 @@ export default function InboxPage() {
     });
   };
 
-  // Handler for row click -> open detail
+  // Clicking on a row: open detail + mark as read
   const handleRowClick = (email: Email) => {
     setSelectedEmail(email);
-    // Mark as read
     markAsRead(email.id);
   };
 
-  // Handler for composing a new message.
+  // Compose new message
   const handleComposeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -174,10 +225,12 @@ export default function InboxPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(emailForm),
       });
-      if (!res.ok) throw new Error("Mail gönderilemedi");
+      if (!res.ok) {
+        throw new Error("Mail gönderilemedi");
+      }
       setComposeOpen(false);
       setEmailForm({ to: "", subject: "", body: "" });
-      // Optionally, refresh the "sent" box if the user is on that tab
+      // Refresh "sent" if that's our current tab
       if (activeTab === "sent") {
         fetchEmailsWithCache("sent");
       }
@@ -186,7 +239,7 @@ export default function InboxPage() {
     }
   };
 
-  // Handler for reply submission.
+  // Reply
   const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -208,7 +261,7 @@ export default function InboxPage() {
     }
   };
 
-  // Handler for forward submission.
+  // Forward
   const handleForwardSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -230,25 +283,21 @@ export default function InboxPage() {
     }
   };
 
-  // Handler for deleting an email (demo: remove from state).
-  // Adjust to make a real DELETE call if needed.
+  // Delete email (demo) - remove from state/cache. Real app: call DELETE API
   const handleDelete = (id: string) => {
     if (window.confirm("Maili silmek istediğinize emin misiniz?")) {
       setEmails((prev) => prev.filter((email) => email.id !== id));
-
-      // Also remove from cache so it won't reappear on next fetch
       if (emailCache[activeTab]) {
         emailCache[activeTab] = emailCache[activeTab]!.filter(
           (email) => email.id !== id
         );
       }
-      // Real app: call your DELETE API endpoint here
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Yan Menü */}
+      {/* Side Menu */}
       <aside className="w-64 bg-white border-r border-gray-200 p-4">
         <button
           onClick={() => setComposeOpen(true)}
@@ -276,7 +325,7 @@ export default function InboxPage() {
         </ul>
       </aside>
 
-      {/* Ana İçerik */}
+      {/* Main Content */}
       <main className="flex-1 p-4">
         <div className="mb-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">
@@ -290,9 +339,15 @@ export default function InboxPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
         {error && <div className="mb-4 text-red-600">{error}</div>}
 
-        {/* Responsive container for horizontal scroll on mobile */}
+        {/* If loading, show a spinner or message (optional) */}
+        {loading && emails.length === 0 && (
+          <div className="mb-4 text-gray-500">Yükleniyor...</div>
+        )}
+
+        {/* Table of Emails */}
         <div className="bg-white shadow rounded overflow-x-auto sm:overflow-x-visible">
           <table className="min-w-full">
             <thead className="bg-gray-50">
@@ -308,15 +363,14 @@ export default function InboxPage() {
             <tbody>
               {filteredEmails.length > 0 ? (
                 filteredEmails.map((email) => {
-                  // Check if the email is read or not
                   const isRead = readEmailIds.includes(email.id);
                   return (
                     <tr
                       key={email.id}
+                      onClick={() => handleRowClick(email)}
                       className={`hover:bg-gray-100 cursor-pointer ${
                         isRead ? "font-normal" : "font-bold"
                       }`}
-                      onClick={() => handleRowClick(email)}
                     >
                       <td className="px-4 py-2">
                         {activeTab === "inbox" ? email.from : email.to}
@@ -348,8 +402,8 @@ export default function InboxPage() {
                             setEmailForm({
                               to: "",
                               subject: "Fwd: " + email.subject,
-                              body:
-                                "\n\n--- Orijinal Mesaj ---\n" + email.body,
+                              // Include entire original body
+                              body: `\n\n--- Orijinal Mesaj ---\n${email.body}`,
                             });
                           }}
                           title="İlet"
@@ -372,27 +426,35 @@ export default function InboxPage() {
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan={4} className="px-4 py-2 text-center">
-                    Mail bulunamadı.
-                  </td>
-                </tr>
+                // No emails or no matches
+                !loading && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-2 text-center">
+                      Mail bulunamadı.
+                    </td>
+                  </tr>
+                )
               )}
             </tbody>
           </table>
         </div>
       </main>
 
-      {/* Mail Detay Modal */}
+      {/* Email Detail Modal */}
       <AnimatePresence>
         {selectedEmail && (
           <motion.div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
-            <motion.div className="bg-white rounded-lg p-6 w-full max-w-2xl relative">
+            <motion.div
+              className="bg-white rounded-lg p-6 w-full max-w-2xl relative"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
               <button
                 onClick={() => setSelectedEmail(null)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
@@ -417,8 +479,8 @@ export default function InboxPage() {
                 </p>
               </div>
               <div className="prose max-w-none mb-4">
-                {selectedEmail.body.split("\n").map((line, index) => (
-                  <p key={index}>{line}</p>
+                {selectedEmail.body.split("\n").map((line, idx) => (
+                  <p key={idx}>{line}</p>
                 ))}
               </div>
               <div className="flex space-x-2">
@@ -441,8 +503,7 @@ export default function InboxPage() {
                     setEmailForm({
                       to: "",
                       subject: "Fwd: " + selectedEmail.subject,
-                      body:
-                        "\n\n--- Orijinal Mesaj ---\n" + selectedEmail.body,
+                      body: `\n\n--- Orijinal Mesaj ---\n${selectedEmail.body}`,
                     });
                   }}
                   className="bg-green-500 text-white px-4 py-2 rounded"
@@ -455,16 +516,21 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
-      {/* Yeni Mesaj Modal */}
+      {/* Compose (New Message) Modal */}
       <AnimatePresence>
         {composeOpen && (
           <motion.div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
-            <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
+            <motion.div
+              className="bg-white rounded-lg p-6 w-full max-w-lg relative"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
               <button
                 onClick={() => setComposeOpen(false)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
@@ -479,7 +545,10 @@ export default function InboxPage() {
                     type="email"
                     value={emailForm.to}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, to: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        to: e.target.value,
+                      }))
                     }
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -491,7 +560,10 @@ export default function InboxPage() {
                     type="text"
                     value={emailForm.subject}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, subject: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        subject: e.target.value,
+                      }))
                     }
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -502,12 +574,15 @@ export default function InboxPage() {
                   <textarea
                     value={emailForm.body}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, body: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        body: e.target.value,
+                      }))
                     }
                     required
                     rows={6}
                     className="w-full border border-gray-300 rounded px-3 py-2"
-                  ></textarea>
+                  />
                 </div>
                 <button
                   type="submit"
@@ -521,16 +596,21 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
-      {/* Cevap Modal */}
+      {/* Reply Modal */}
       <AnimatePresence>
         {replyOpen && (
           <motion.div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
-            <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
+            <motion.div
+              className="bg-white rounded-lg p-6 w-full max-w-lg relative"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
               <button
                 onClick={() => setReplyOpen(false)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
@@ -554,7 +634,10 @@ export default function InboxPage() {
                     type="text"
                     value={emailForm.subject}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, subject: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        subject: e.target.value,
+                      }))
                     }
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -565,12 +648,15 @@ export default function InboxPage() {
                   <textarea
                     value={emailForm.body}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, body: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        body: e.target.value,
+                      }))
                     }
                     required
                     rows={6}
                     className="w-full border border-gray-300 rounded px-3 py-2"
-                  ></textarea>
+                  />
                 </div>
                 <button
                   type="submit"
@@ -584,16 +670,21 @@ export default function InboxPage() {
         )}
       </AnimatePresence>
 
-      {/* İlet Modal */}
+      {/* Forward Modal */}
       <AnimatePresence>
         {forwardOpen && (
           <motion.div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
-            <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
+            <motion.div
+              className="bg-white rounded-lg p-6 w-full max-w-lg relative"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+            >
               <button
                 onClick={() => setForwardOpen(false)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
@@ -607,7 +698,10 @@ export default function InboxPage() {
                   <select
                     value={emailForm.to}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, to: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        to: e.target.value,
+                      }))
                     }
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -626,7 +720,10 @@ export default function InboxPage() {
                     type="text"
                     value={emailForm.subject}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, subject: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        subject: e.target.value,
+                      }))
                     }
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -637,12 +734,15 @@ export default function InboxPage() {
                   <textarea
                     value={emailForm.body}
                     onChange={(e) =>
-                      setEmailForm({ ...emailForm, body: e.target.value })
+                      setEmailForm((prev) => ({
+                        ...prev,
+                        body: e.target.value,
+                      }))
                     }
                     required
                     rows={6}
                     className="w-full border border-gray-300 rounded px-3 py-2"
-                  ></textarea>
+                  />
                 </div>
                 <button
                   type="submit"
