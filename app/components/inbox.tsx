@@ -29,7 +29,10 @@ export default function Inbox() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => setCurrentUser(user));
+    const unsub = auth.onAuthStateChanged((user) => {
+      console.log("Auth state changed, user:", user);
+      setCurrentUser(user);
+    });
     return () => unsub();
   }, []);
 
@@ -44,6 +47,7 @@ export default function Inbox() {
           id: doc.id,
           ...doc.data(),
         }));
+        console.log("Fetched users:", data);
         setUsers(data);
         setLoadingUsers(false);
       },
@@ -72,26 +76,33 @@ export default function Inbox() {
     useEffect(() => {
       if (!currentUser?.uid || !user) return;
 
-      // This is the other user's actual Auth UID if it exists, or else fallback to doc.id
-      // Make sure that doc.id IS the Auth UID if there's no user.uid
+      // Get the other user's UID from their document
       const otherUid = user.uid || user.id;
+      console.log("Current user UID:", currentUser.uid);
+      console.log("Other user UID:", otherUid);
+
+      // Generate a unique chat id by sorting and joining the UIDs
       const sortedPair = [currentUser.uid, otherUid].sort();
       const generatedChatId = sortedPair.join("_");
+      console.log("Generated Chat ID:", generatedChatId);
 
       async function createOrGetChat() {
         try {
           const chatRef = doc(firestore, "chats", generatedChatId);
+          console.log("Attempting to get chat document:", generatedChatId);
           const snap = await getDoc(chatRef);
           if (!snap.exists()) {
+            console.log("Chat document does not exist, creating new chat...");
             await setDoc(chatRef, {
               participants: sortedPair,
               createdAt: serverTimestamp(),
             });
+          } else {
+            console.log("Chat document already exists:", snap.data());
           }
-          // Only after the doc definitely exists, set the chatId
           setChatId(generatedChatId);
         } catch (err) {
-          console.error("Error creating/fetching chat doc:", err);
+          console.error("Error creating/fetching chat document:", err);
         }
       }
 
@@ -99,19 +110,20 @@ export default function Inbox() {
     }, [currentUser, user]);
 
     /**
-     * Subscribe to messages ONLY after we have a valid chatId
-     * and the parent doc definitely exists.
+     * Subscribe to messages ONLY after we have a valid chatId.
      */
     useEffect(() => {
       if (!chatId) return;
       const messagesRef = collection(firestore, "chats", chatId, "messages");
       const q = query(messagesRef, orderBy("createdAt", "asc"));
 
+      console.log("Subscribing to messages for chat:", chatId);
       const unsub = onSnapshot(q, (snapshot) => {
         const msgs = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        console.log("Received messages:", msgs);
         setMessages(msgs);
       });
 
@@ -121,9 +133,9 @@ export default function Inbox() {
     /** Send a new message */
     const sendMessage = async () => {
       if (!newMessage.trim() || !chatId || !currentUser?.uid) return;
-
       try {
         const messagesRef = collection(firestore, "chats", chatId, "messages");
+        console.log("Sending message:", newMessage.trim());
         await addDoc(messagesRef, {
           text: newMessage.trim(),
           sender: currentUser.uid,
@@ -270,6 +282,7 @@ export default function Inbox() {
                           key={u.id}
                           className="cursor-pointer p-2 hover:bg-gray-100 rounded"
                           onClick={() => {
+                            console.log("Selected chat user:", u);
                             setSelectedChatUser(u);
                           }}
                         >

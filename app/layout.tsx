@@ -21,7 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${figtree.className} antialiased`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body className={`${figtree.className} antialiased overflow-x-hidden`}>
         <SidebarAndInbox />
         <ConditionalMain>{children}</ConditionalMain>
       </body>

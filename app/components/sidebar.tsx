@@ -76,7 +76,7 @@ const Sidebar = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.push("/auth");
+      router.push("/");
     } catch (error) {
       console.error("Error signing out: ", error);
     }
