@@ -196,115 +196,118 @@ export default function UnitsPage() {
 
         {/* Units Table */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
-            <thead className="bg-gray-100 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  İsim
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Proje
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Sokak İsmi
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Numara
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  İşlemler
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {units.length > 0 ? (
-                units.map((unit) => (
-                  <tr key={unit.id} className="whitespace-nowrap">
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center">
-                      {/* Show green circle if unit is reserved */}
-                      {unit.reservation && (
-                        <span className="inline-block w-3 h-3 mr-2 bg-green-500 rounded-full"></span>
-                      )}
-                      {unit.name}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {unit.project}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {unit.streetName}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {unit.number}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        {/* Show description tooltip icon if description exists */}
-                        {unit.description && (
-                          <div className="relative inline-block">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTooltipUnitId(
-                                  tooltipUnitId === unit.id ? null : unit.id
-                                );
-                              }}
-                              title="View Description"
-                              className="text-gray-500 hover:text-gray-700 transition-colors"
-                            >
-                              <FiMessageSquare size={20} />
-                            </button>
-                            <AnimatePresence>
-                              {tooltipUnitId === unit.id && (
-                                <motion.div
-                                  ref={tooltipRef}
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -10 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 max-w-[350px] whitespace-normal"
-                                >
-                                  {unit.description}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+          {/* Wrap table in a scrollable container for mobile view */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
+              <thead className="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    İsim
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    Proje
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    Sokak İsmi
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    Numara
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    İşlemler
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {units.length > 0 ? (
+                  units.map((unit) => (
+                    <tr key={unit.id} className="whitespace-nowrap">
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center">
+                        {/* Show green circle if unit is reserved */}
+                        {unit.reservation && (
+                          <span className="inline-block w-3 h-3 mr-2 bg-green-500 rounded-full"></span>
                         )}
-                        {/* Only show edit and delete icons if the current user is the owner */}
-                        {auth.currentUser &&
-                          unit.owner === auth.currentUser.uid && (
-                            <>
+                        {unit.name}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        {unit.project}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        {unit.streetName}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        {unit.number}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          {/* Show description tooltip icon if description exists */}
+                          {unit.description && (
+                            <div className="relative inline-block">
                               <button
-                                onClick={() => handleEditUnit(unit)}
-                                title="Konut Güncelle"
-                                className="text-blue-500 hover:text-blue-700 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTooltipUnitId(
+                                    tooltipUnitId === unit.id ? null : unit.id
+                                  );
+                                }}
+                                title="View Description"
+                                className="text-gray-500 hover:text-gray-700 transition-colors"
                               >
-                                <FiEdit size={20} />
+                                <FiMessageSquare size={20} />
                               </button>
-                              <button
-                                onClick={() => handleDeleteUnit(unit)}
-                                title="Konut Sil"
-                                className="text-red-500 hover:text-red-700 transition-colors"
-                              >
-                                <FiTrash2 size={20} />
-                              </button>
-                            </>
+                              <AnimatePresence>
+                                {tooltipUnitId === unit.id && (
+                                  <motion.div
+                                    ref={tooltipRef}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 max-w-[350px] whitespace-normal"
+                                  >
+                                    {unit.description}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           )}
-                      </div>
+                          {/* Only show edit and delete icons if the current user is the owner */}
+                          {auth.currentUser &&
+                            unit.owner === auth.currentUser.uid && (
+                              <>
+                                <button
+                                  onClick={() => handleEditUnit(unit)}
+                                  title="Konut Güncelle"
+                                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                                >
+                                  <FiEdit size={20} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUnit(unit)}
+                                  title="Konut Sil"
+                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                >
+                                  <FiTrash2 size={20} />
+                                </button>
+                              </>
+                            )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      Konut bulunamadı.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    Konut bulunamadı.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
