@@ -12,6 +12,7 @@ import {
   FiLogOut,
   FiSun,
   FiMoon,
+  FiPackage,
 } from "react-icons/fi";
 
 // Import Firebase auth functions
@@ -65,6 +66,15 @@ const Sidebar = () => {
     setExpanded(false);
   };
 
+  // Special handler for the "E-posta" menu item.
+  const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!document.cookie.includes("google-authenticated=true")) {
+      // Prevent default navigation and redirect to authentication
+      e.preventDefault();
+      window.location.href = "/api/auth/google";
+    }
+  };
+
   const menuItems = [
     { name: "Ana Sayfa", icon: <FiHome size={20} />, href: "/navigation" },
     { name: "Müşteriler", icon: <FiUsers size={20} />, href: "/customers" },
@@ -73,6 +83,12 @@ const Sidebar = () => {
       name: "Rezervasyonlar",
       icon: <FiCalendar size={20} />,
       href: "/reservations",
+    },
+    {
+      name: "E-posta",
+      icon: <FiPackage size={20} />,
+      href: "/inbox",
+      onClick: handleEmailClick, // Add custom handler
     },
     { name: "Profil", icon: <FiUser size={20} />, href: "/profile" },
   ];
@@ -109,6 +125,7 @@ const Sidebar = () => {
               <Link
                 key={index}
                 href={item.href}
+                onClick={item.name === "E-posta" ? item.onClick : undefined}
                 className={`flex items-center px-2 py-2 transition-colors duration-300 ${
                   isActive
                     ? "bg-green-500"
@@ -156,6 +173,7 @@ const Sidebar = () => {
             <Link
               key={index}
               href={item.href}
+              onClick={item.name === "E-posta" ? item.onClick : undefined}
               className={`w-full flex items-center p-4 transition-colors duration-300 ${
                 expanded ? "justify-start" : "justify-center"
               } ${
