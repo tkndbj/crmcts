@@ -46,35 +46,35 @@ export default function NavigationPage() {
         <h1 className="text-3xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100">
           Navigasyon
         </h1>
-        {/* For mobile, use grid-cols-2 with minimal gap and on larger screens larger gaps */}
+        {/* For mobile: grid-cols-2 with minimal gap, and on larger screens larger gaps */}
         <div className="grid grid-cols-2 gap-2 md:gap-8">
           <Link href="/customers">
-            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
-              <HiOutlineUserGroup className="h-10 w-10 text-indigo-500 mr-4" />
+            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 sm:p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+              <HiOutlineUserGroup className="h-12 w-12 sm:h-10 sm:w-10 text-indigo-500 mr-2 sm:mr-4" />
               <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
                 Müşteriler
               </span>
             </div>
           </Link>
           <Link href="/units">
-            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
-              <HiOutlineOfficeBuilding className="h-10 w-10 text-teal-500 mr-4" />
+            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 sm:p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+              <HiOutlineOfficeBuilding className="h-12 w-12 sm:h-10 sm:w-10 text-teal-500 mr-2 sm:mr-4" />
               <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
                 Konutlar
               </span>
             </div>
           </Link>
           <Link href="/reservations">
-            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
-              <HiOutlineCalendar className="h-10 w-10 text-orange-500 mr-4" />
+            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 sm:p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+              <HiOutlineCalendar className="h-12 w-12 sm:h-10 sm:w-10 text-orange-500 mr-2 sm:mr-4" />
               <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
                 Rezervasyonlar
               </span>
             </div>
           </Link>
           <Link href="/profile">
-            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
-              <HiOutlineUserCircle className="h-10 w-10 text-pink-500 mr-4" />
+            <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 sm:p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+              <HiOutlineUserCircle className="h-12 w-12 sm:h-10 sm:w-10 text-pink-500 mr-2 sm:mr-4" />
               <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
                 Profil
               </span>
@@ -83,8 +83,8 @@ export default function NavigationPage() {
           {/* Extra card for admins */}
           {isAdmin && (
             <Link href="/admin">
-              <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
-                <HiOutlineShieldExclamation className="h-10 w-10 text-red-500 mr-4" />
+              <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 sm:p-8 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
+                <HiOutlineShieldExclamation className="h-12 w-12 sm:h-10 sm:w-10 text-red-500 mr-2 sm:mr-4" />
                 <span className="text-xl font-medium text-gray-800 dark:text-gray-100">
                   Kullanıcılar
                 </span>
