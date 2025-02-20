@@ -286,6 +286,9 @@ export default function CustomersPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Üst Kısım – Sekmeler */}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Müşteriler
+        </h1>
         <div className="flex justify-between items-center mb-8">
           <div className="flex space-x-4">
             <button

@@ -26,3 +26,10 @@ body {
 html {
   overflow-x: hidden; /* Ensure the html element also does not overflow horizontally */
 }
+
+@media (max-width: 640px) {
+  input,
+  textarea {
+    color: var(--foreground);
+  }
+}
