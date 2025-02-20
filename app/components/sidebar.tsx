@@ -39,7 +39,7 @@ const Sidebar = () => {
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 640);
-      // If on mobile, ensure sidebar is collapsed.
+      // On mobile, we want the header version, so no expansion needed.
       if (window.innerWidth < 640) {
         setExpanded(false);
       }
@@ -98,12 +98,55 @@ const Sidebar = () => {
     }
   };
 
+  // Mobile header version
+  if (isMobile) {
+    return (
+      <div className="fixed top-0 left-0 w-full h-16 bg-gray-800 dark:bg-gray-900 text-white flex items-center justify-between px-4 z-50">
+        <nav className="flex space-x-4">
+          {menuItems.map((item, index) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={index}
+                href={item.href}
+                className={`flex items-center px-2 py-2 transition-colors duration-300 ${
+                  isActive
+                    ? "bg-green-500"
+                    : "hover:bg-gray-700 dark:hover:bg-gray-800"
+                } rounded`}
+              >
+                <div className="flex-shrink-0">{item.icon}</div>
+                {/* Optionally show text on larger screens */}
+                <span className="hidden sm:inline ml-2">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="flex space-x-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 hover:bg-gray-700 dark:hover:bg-gray-800 rounded transition-colors"
+          >
+            {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="p-2 hover:bg-gray-700 dark:hover:bg-gray-800 rounded transition-colors"
+          >
+            <FiLogOut size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop vertical sidebar version
   return (
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={`fixed top-0 left-0 h-screen bg-gray-800 dark:bg-gray-900 text-white transition-all duration-500 ${
-        isMobile ? "w-12" : expanded ? "w-48" : "w-16"
+        expanded ? "w-48" : "w-16"
       } flex flex-col justify-between`}
     >
       <nav className="mt-4 flex flex-col">
