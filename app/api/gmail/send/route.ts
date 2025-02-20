@@ -1,4 +1,3 @@
-// app/api/gmail/send/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -51,9 +50,7 @@ export async function POST(request: NextRequest) {
         .replace(/=+$/, "");
     }
 
-    // You need to know the "From" email. Depending on your implementation,
-    // you might store the user email separately. For now, we'll assume that
-    // tokens.email exists.
+    // Use the authenticated user's email from tokens
     const fromEmail = tokens.email || "";
 
     const raw = createRawMessage({

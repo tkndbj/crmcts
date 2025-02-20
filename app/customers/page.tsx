@@ -234,6 +234,11 @@ export default function CustomersPage() {
 
   // E-posta modalını aç
   const handleEmailIconClick = (customer: any) => {
+    // Check if authentication flag exists; if not, redirect for one-time auth.
+    if (!document.cookie.includes("google-authenticated=true")) {
+      window.location.href = "/api/auth/google";
+      return;
+    }
     setSelectedEmailCustomer(customer);
     setEmailMessage("");
     setEmailModalOpen(true);

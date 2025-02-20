@@ -29,10 +29,15 @@ export async function GET(request: Request) {
     const { data: userInfo } = await oauth2.userinfo.get();
     (tokens as any).email = userInfo.email; // Attach the email to tokens
 
-    // Example: Store tokens in an HTTP-only cookie
+    // Create a response and set the tokens in an HTTP-only cookie...
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
     response.cookies.set("google-tokens", JSON.stringify(tokens), {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+    // ...and also set a non-HTTP-only flag so the client can detect authentication.
+    response.cookies.set("google-authenticated", "true", {
       secure: process.env.NODE_ENV === "production",
       path: "/",
     });
