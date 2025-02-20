@@ -28,6 +28,7 @@ export default function Inbox() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  // Listen for auth state changes.
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
       console.log("Auth state changed, user:", user);
@@ -76,12 +77,13 @@ export default function Inbox() {
     useEffect(() => {
       if (!currentUser?.uid || !user) return;
 
-      // Get the other user's UID from their document
+      // Get the other user's UID from their document.
+      // We use user.uid if available; otherwise, fallback to the document ID.
       const otherUid = user.uid || user.id;
       console.log("Current user UID:", currentUser.uid);
       console.log("Other user UID:", otherUid);
 
-      // Generate a unique chat id by sorting and joining the UIDs
+      // Generate a unique chat id by sorting and joining the UIDs.
       const sortedPair = [currentUser.uid, otherUid].sort();
       const generatedChatId = sortedPair.join("_");
       console.log("Generated Chat ID:", generatedChatId);
@@ -93,13 +95,23 @@ export default function Inbox() {
           const snap = await getDoc(chatRef);
           if (!snap.exists()) {
             console.log("Chat document does not exist, creating new chat...");
+            // Create the chat document with the participants array.
             await setDoc(chatRef, {
               participants: sortedPair,
               createdAt: serverTimestamp(),
             });
           } else {
-            console.log("Chat document already exists:", snap.data());
+            const data = snap.data();
+            if (!data.participants.includes(currentUser.uid)) {
+              console.error(
+                "Chat document exists but current user is missing from participants:",
+                data
+              );
+            } else {
+              console.log("Chat document already exists:", data);
+            }
           }
+          // Set the chatId regardless of creation or existence.
           setChatId(generatedChatId);
         } catch (err) {
           console.error("Error creating/fetching chat document:", err);
@@ -172,7 +184,7 @@ export default function Inbox() {
           <h3 className="text-lg font-bold flex-1 text-center">
             Chat with {user.displayName || user.email}
           </h3>
-          <div className="w-6" /> {/* placeholder for symmetry */}
+          <div className="w-6" />
         </div>
 
         {/* Messages */}

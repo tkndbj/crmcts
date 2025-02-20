@@ -330,125 +330,128 @@ export default function CustomersPage() {
 
         {/* Müşteriler Tablosu */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
-            <thead className="bg-gray-100 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  İsim
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  E-posta
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Telefon
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Adres
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  İşlemler
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {displayedCustomers.length > 0 ? (
-                displayedCustomers.map((customer) => (
-                  <tr key={customer.id} className="whitespace-nowrap">
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      <span
-                        onClick={() => handleCustomerInfo(customer)}
-                        className="cursor-pointer hover:text-blue-500"
-                      >
-                        {customer.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEmailIconClick(customer);
-                        }}
-                        title="E-posta Gönder"
-                        className="text-green-500 hover:text-green-700 transition-colors"
-                      >
-                        <FiMail size={20} />
-                      </button>
-                      <span>{customer.email}</span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {customer.phone}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {customer.address}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        {/* Not (Açıklama) İkonu – her zaman göster */}
-                        <div className="relative inline-block">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTooltipCustomerId(
-                                tooltipCustomerId === customer.id
-                                  ? null
-                                  : customer.id
-                              );
-                            }}
-                            title="Notu Gör"
-                            className="text-gray-500 hover:text-gray-700 transition-colors"
-                          >
-                            <FiClipboard size={20} />
-                          </button>
-                          <AnimatePresence>
-                            {tooltipCustomerId === customer.id && (
-                              <motion.div
-                                ref={tooltipRef}
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[600px] whitespace-normal"
+          {/* Wrap table in a scrollable container for mobile view */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
+              <thead className="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    İsim
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    E-posta
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    Telefon
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    Adres
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    İşlemler
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {displayedCustomers.length > 0 ? (
+                  displayedCustomers.map((customer) => (
+                    <tr key={customer.id} className="whitespace-nowrap">
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <span
+                          onClick={() => handleCustomerInfo(customer)}
+                          className="cursor-pointer hover:text-blue-500"
+                        >
+                          {customer.name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEmailIconClick(customer);
+                          }}
+                          title="E-posta Gönder"
+                          className="text-green-500 hover:text-green-700 transition-colors"
+                        >
+                          <FiMail size={20} />
+                        </button>
+                        <span>{customer.email}</span>
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        {customer.phone}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        {customer.address}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          {/* Not (Açıklama) İkonu – her zaman göster */}
+                          <div className="relative inline-block">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTooltipCustomerId(
+                                  tooltipCustomerId === customer.id
+                                    ? null
+                                    : customer.id
+                                );
+                              }}
+                              title="Notu Gör"
+                              className="text-gray-500 hover:text-gray-700 transition-colors"
+                            >
+                              <FiClipboard size={20} />
+                            </button>
+                            <AnimatePresence>
+                              {tooltipCustomerId === customer.id && (
+                                <motion.div
+                                  ref={tooltipRef}
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[600px] whitespace-normal"
+                                >
+                                  {customer.description || "Açıklama yok"}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          {/* Sadece sahibi için: Düzenle ve Sil */}
+                          {isOwner(customer) && (
+                            <>
+                              <button
+                                onClick={() => handleEditCustomer(customer)}
+                                title="Müşteriyi Düzenle"
+                                className="text-blue-500 hover:text-blue-700 transition-colors"
                               >
-                                {customer.description || "Açıklama yok"}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                                <FiEdit size={20} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCustomer(customer)}
+                                title="Müşteriyi Sil"
+                                className="text-red-500 hover:text-red-700 transition-colors"
+                              >
+                                <FiTrash2 size={20} />
+                              </button>
+                            </>
+                          )}
                         </div>
-                        {/* Sadece sahibi için: Düzenle ve Sil */}
-                        {isOwner(customer) && (
-                          <>
-                            <button
-                              onClick={() => handleEditCustomer(customer)}
-                              title="Müşteriyi Düzenle"
-                              className="text-blue-500 hover:text-blue-700 transition-colors"
-                            >
-                              <FiEdit size={20} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCustomer(customer)}
-                              title="Müşteriyi Sil"
-                              className="text-red-500 hover:text-red-700 transition-colors"
-                            >
-                              <FiTrash2 size={20} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      Müşteri bulunamadı.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    Müşteri bulunamadı.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
