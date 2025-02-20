@@ -20,33 +20,55 @@ export async function GET(request: NextRequest) {
   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
   try {
     // Get list of messages from the INBOX
-    const res = await gmail.users.messages.list({
+    const listRes = await gmail.users.messages.list({
       userId: "me",
       labelIds: ["INBOX"],
-      maxResults: 10 // adjust as needed
+      maxResults: 10, // or 50, or whatever you prefer
     });
-    const messages = res.data.messages || [];
+    const messages = listRes.data.messages || [];
 
-    // For each message, fetch its details
+    // For each message, fetch its details (full) to decode the body
     const emails = await Promise.all(
       messages.map(async (msg) => {
         const msgRes = await gmail.users.messages.get({
           userId: "me",
           id: msg.id!,
-          format: "full"
+          format: "full",
         });
-        const headers = msgRes.data.payload?.headers || [];
-        const from = headers.find(h => h.name === "From")?.value || "";
-        const subject = headers.find(h => h.name === "Subject")?.value || "";
-        const date = headers.find(h => h.name === "Date")?.value || "";
-        // Using snippet as body preview
-        const body = msgRes.data.snippet || "";
+
+        const payload = msgRes.data.payload || {};
+        const headers = payload.headers || [];
+
+        const from = headers.find((h) => h.name === "From")?.value || "";
+        const subject = headers.find((h) => h.name === "Subject")?.value || "";
+        const date = headers.find((h) => h.name === "Date")?.value || "";
+
+        // Attempt to extract plain-text body
+        let body = "";
+        if (payload.parts) {
+          // Find the part that is text/plain (or fallback to snippet, or text/html if you prefer)
+          const part = payload.parts.find((p) => p.mimeType === "text/plain");
+          if (part && part.body && part.body.data) {
+            body = Buffer.from(part.body.data, "base64").toString("utf-8");
+          } else {
+            // If there's an HTML part or no text/plain, you can handle that too
+            // For now, fallback to snippet if no text/plain found
+            body = msgRes.data.snippet || "";
+          }
+        } else if (payload.body?.data) {
+          // If there's only one part and no multi-part
+          body = Buffer.from(payload.body.data, "base64").toString("utf-8");
+        } else {
+          // Fallback to snippet if we have absolutely no "body.data"
+          body = msgRes.data.snippet || "";
+        }
+
         return {
-          id: msg.id,
+          id: msg.id!,
           from,
           subject,
           date,
-          body
+          body,
         };
       })
     );
