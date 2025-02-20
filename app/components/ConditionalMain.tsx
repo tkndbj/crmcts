@@ -9,8 +9,9 @@ export default function ConditionalMain({
 }) {
   const pathname = usePathname();
 
-  // Remove margin on the home page ("/"), otherwise apply ml-16
-  const marginClass = pathname === "/" ? "" : "ml-16";
+  // On the home page, no margin is applied.
+  // For other pages, apply ml-12 (mobile) and ml-16 (sm and above).
+  const marginClass = pathname === "/" ? "" : "ml-12 sm:ml-16";
 
   return (
     <main className={`${marginClass} transition-all duration-300`}>
