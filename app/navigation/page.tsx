@@ -68,7 +68,7 @@ export default function NavigationPage() {
             <div className="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 sm:p-4 cursor-pointer transform hover:-translate-y-1 transition duration-300 hover:shadow-2xl">
               <HiOutlineCalendar className="h-10 w-10 sm:h-12 sm:w-12 text-orange-500 mr-2 sm:mr-4" />
               <span className="text-lg font-medium sm:text-xl text-gray-800 dark:text-gray-100">
-                Rezervasyonlar
+                Rezervasyon
               </span>
             </div>
           </Link>

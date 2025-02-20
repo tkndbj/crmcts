@@ -66,15 +66,15 @@ const Sidebar = () => {
   };
 
   const menuItems = [
-    { name: "Home", icon: <FiHome size={20} />, href: "/navigation" },
-    { name: "Customers", icon: <FiUsers size={20} />, href: "/customers" },
-    { name: "Units", icon: <FiLayers size={20} />, href: "/units" },
+    { name: "Ana Sayfa", icon: <FiHome size={20} />, href: "/navigation" },
+    { name: "Müşteriler", icon: <FiUsers size={20} />, href: "/customers" },
+    { name: "Konutlar", icon: <FiLayers size={20} />, href: "/units" },
     {
-      name: "Reservations",
+      name: "Rezervasyonlar",
       icon: <FiCalendar size={20} />,
       href: "/reservations",
     },
-    { name: "Profile", icon: <FiUser size={20} />, href: "/profile" },
+    { name: "Profil", icon: <FiUser size={20} />, href: "/profile" },
   ];
 
   // Toggle between light and dark theme
@@ -199,7 +199,7 @@ const Sidebar = () => {
           </div>
           {expanded && (
             <span className="ml-4 whitespace-nowrap transition-all duration-300">
-              Logout
+              Çıkış
             </span>
           )}
         </button>

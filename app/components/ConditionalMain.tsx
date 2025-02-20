@@ -15,7 +15,9 @@ export default function ConditionalMain({
 
   return (
     <main
-      className={`${marginClass} transition-all duration-300 ${topPadding}`}
+      className={[marginClass, "transition-all duration-300", topPadding]
+        .filter(Boolean)
+        .join(" ")}
     >
       {children}
     </main>
