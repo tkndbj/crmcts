@@ -23,25 +23,41 @@ const auth = getAuth(firebaseApp);
 const Sidebar = () => {
   const [expanded, setExpanded] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const router = useRouter();
 
-  // On mount, check if dark mode is enabled
+  // Check if dark mode is enabled on mount
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) {
       setIsDark(true);
     }
   }, []);
 
+  // Check screen size to determine if on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+      // If on mobile, ensure sidebar is collapsed.
+      if (window.innerWidth < 640) {
+        setExpanded(false);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleMouseEnter = () => {
-    // Wait 0.5s before expanding
+    if (isMobile) return; // Disable hover behavior on mobile
     hoverTimer.current = setTimeout(() => {
       setExpanded(true);
     }, 500);
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return; // Disable hover behavior on mobile
     if (hoverTimer.current) {
       clearTimeout(hoverTimer.current);
       hoverTimer.current = null;
@@ -87,7 +103,7 @@ const Sidebar = () => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={`fixed top-0 left-0 h-screen bg-gray-800 dark:bg-gray-900 text-white transition-all duration-500 ${
-        expanded ? "w-48" : "w-16"
+        isMobile ? "w-12" : expanded ? "w-48" : "w-16"
       } flex flex-col justify-between`}
     >
       <nav className="mt-4 flex flex-col">
