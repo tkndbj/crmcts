@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX, FiCornerUpLeft, FiTrash2, FiCornerUpRight } from "react-icons/fi";
+import {
+  FiX,
+  FiCornerUpLeft,
+  FiTrash2,
+  FiCornerUpRight,
+} from "react-icons/fi";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import firebaseApp from "../../firebaseClient";
 
@@ -21,6 +26,12 @@ type User = {
   name: string;
 };
 
+// Simple in-memory cache for emails
+const emailCache: { [key: string]: Email[] | null } = {
+  inbox: null,
+  sent: null,
+};
+
 export default function InboxPage() {
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [emails, setEmails] = useState<Email[]>([]);
@@ -36,6 +47,10 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [readEmailIds, setReadEmailIds] = useState<string[]>([]);
+
+  // Keep a ref to our interval for cleanup
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch real users from Firestore for forward selection.
   useEffect(() => {
@@ -57,40 +72,98 @@ export default function InboxPage() {
     fetchUsers();
   }, []);
 
-  // Fetch emails from API endpoint based on active tab.
-  useEffect(() => {
-    async function fetchEmails() {
-      try {
-        // Endpoint should return the latest 50 emails.
-        const endpoint = activeTab === "inbox" ? "/api/gmail/inbox" : "/api/gmail/sent";
-        const res = await fetch(endpoint);
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data.error || "E-postalar alınamadı.");
-          setEmails([]);
-          return;
-        }
-        if (Array.isArray(data)) {
-          setEmails(data);
-        } else {
-          setError("Beklenmeyen veri formatı alındı.");
-        }
-      } catch (err: any) {
-        console.error("E-postalar alınırken hata:", err);
-        setError("E-postalar alınırken hata oluştu.");
-      }
+  // Reusable function to fetch emails with caching
+  async function fetchEmailsWithCache(tab: "inbox" | "sent") {
+    // If we have cached data, set state immediately for faster UI
+    if (emailCache[tab]) {
+      setEmails(emailCache[tab]!);
     }
-    fetchEmails();
+
+    try {
+      // e.g., show at least the latest 50 emails
+      // Your backend should support this (or you can pass ?limit=50, etc.)
+      const endpoint =
+        tab === "inbox"
+          ? "/api/gmail/inbox?limit=50"
+          : "/api/gmail/sent?limit=50";
+
+      const res = await fetch(endpoint);
+      // If the response is an HTML error page, it may throw a JSON parse error
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "E-postalar alınamadı.");
+        setEmails([]);
+        return;
+      }
+
+      if (Array.isArray(data)) {
+        // Update cache and state
+        emailCache[tab] = data;
+        setEmails(data);
+        setError(null);
+      } else {
+        setError("Beklenmeyen veri formatı alındı.");
+      }
+    } catch (err: any) {
+      console.error("E-postalar alınırken hata:", err);
+      setError("E-postalar alınırken hata oluştu.");
+    }
+  }
+
+  // Fetch emails on activeTab change (with caching)
+  useEffect(() => {
+    fetchEmailsWithCache(activeTab);
+
+    // Clear the selected email each time we switch tabs
+    setSelectedEmail(null);
+  }, [activeTab]);
+
+  // Polling approach for live data update every 30 seconds
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    intervalRef.current = setInterval(() => {
+      // Re-fetch emails to keep data in sync
+      fetchEmailsWithCache(activeTab);
+    }, 30000); // 30 seconds
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [activeTab]);
 
   // Filter emails based on search query.
-  const filteredEmails = emails.filter(
-    (email) =>
-      email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (email.from && email.from.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (email.to && email.to.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredEmails = emails.filter((email) => {
+    const subjectMatch = email.subject
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const fromMatch =
+      email.from && email.from.toLowerCase().includes(searchQuery.toLowerCase());
+    const toMatch =
+      email.to && email.to.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return subjectMatch || fromMatch || toMatch;
+  });
+
+  // Mark email as read
+  const markAsRead = (emailId: string) => {
+    setReadEmailIds((prev) => {
+      if (prev.includes(emailId)) return prev;
+      return [...prev, emailId];
+    });
+  };
+
+  // Handler for row click -> open detail
+  const handleRowClick = (email: Email) => {
+    setSelectedEmail(email);
+    // Mark as read
+    markAsRead(email.id);
+  };
 
   // Handler for composing a new message.
   const handleComposeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -104,7 +177,10 @@ export default function InboxPage() {
       if (!res.ok) throw new Error("Mail gönderilemedi");
       setComposeOpen(false);
       setEmailForm({ to: "", subject: "", body: "" });
-      // İsteğe bağlı: E-postaları yenileyin.
+      // Optionally, refresh the "sent" box if the user is on that tab
+      if (activeTab === "sent") {
+        fetchEmailsWithCache("sent");
+      }
     } catch (error: any) {
       console.error("Mail gönderilirken hata:", error);
     }
@@ -123,7 +199,10 @@ export default function InboxPage() {
       setReplyOpen(false);
       setSelectedEmail(null);
       setEmailForm({ to: "", subject: "", body: "" });
-      // İsteğe bağlı: E-postaları yenileyin.
+      // Optionally refresh
+      if (activeTab === "sent") {
+        fetchEmailsWithCache("sent");
+      }
     } catch (error: any) {
       console.error("Cevap gönderilirken hata:", error);
     }
@@ -142,17 +221,28 @@ export default function InboxPage() {
       setForwardOpen(false);
       setSelectedEmail(null);
       setEmailForm({ to: "", subject: "", body: "" });
-      // İsteğe bağlı: E-postaları yenileyin.
+      // Optionally refresh
+      if (activeTab === "sent") {
+        fetchEmailsWithCache("sent");
+      }
     } catch (error: any) {
       console.error("İletme gönderilirken hata:", error);
     }
   };
 
-  // Handler for deleting an email (demo: remove from state)
+  // Handler for deleting an email (demo: remove from state).
+  // Adjust to make a real DELETE call if needed.
   const handleDelete = (id: string) => {
     if (window.confirm("Maili silmek istediğinize emin misiniz?")) {
       setEmails((prev) => prev.filter((email) => email.id !== id));
-      // Gerçek uygulamada DELETE API çağrısı yapın.
+
+      // Also remove from cache so it won't reappear on next fetch
+      if (emailCache[activeTab]) {
+        emailCache[activeTab] = emailCache[activeTab]!.filter(
+          (email) => email.id !== id
+        );
+      }
+      // Real app: call your DELETE API endpoint here
     }
   };
 
@@ -201,6 +291,7 @@ export default function InboxPage() {
           />
         </div>
         {error && <div className="mb-4 text-red-600">{error}</div>}
+
         {/* Responsive container for horizontal scroll on mobile */}
         <div className="bg-white shadow rounded overflow-x-auto sm:overflow-x-visible">
           <table className="min-w-full">
@@ -216,59 +307,70 @@ export default function InboxPage() {
             </thead>
             <tbody>
               {filteredEmails.length > 0 ? (
-                filteredEmails.map((email) => (
-                  <tr key={email.id} className="hover:bg-gray-100">
-                    <td className="px-4 py-2">
-                      {activeTab === "inbox" ? email.from : email.to}
-                    </td>
-                    <td className="px-4 py-2">{email.subject}</td>
-                    <td className="px-4 py-2">
-                      {new Date(email.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2 text-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReplyOpen(true);
-                          setEmailForm({
-                            to: email.from,
-                            subject: "Re: " + email.subject,
-                            body: "",
-                          });
-                        }}
-                        title="Cevapla"
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        <FiCornerUpLeft size={18} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setForwardOpen(true);
-                          setEmailForm({
-                            to: "",
-                            subject: "Fwd: " + email.subject,
-                            body: "\n\n--- Orijinal Mesaj ---\n" + email.body,
-                          });
-                        }}
-                        title="İlet"
-                        className="text-green-500 hover:text-green-700"
-                      >
-                        <FiCornerUpRight size={18} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(email.id);
-                        }}
-                        title="Sil"
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredEmails.map((email) => {
+                  // Check if the email is read or not
+                  const isRead = readEmailIds.includes(email.id);
+                  return (
+                    <tr
+                      key={email.id}
+                      className={`hover:bg-gray-100 cursor-pointer ${
+                        isRead ? "font-normal" : "font-bold"
+                      }`}
+                      onClick={() => handleRowClick(email)}
+                    >
+                      <td className="px-4 py-2">
+                        {activeTab === "inbox" ? email.from : email.to}
+                      </td>
+                      <td className="px-4 py-2">{email.subject}</td>
+                      <td className="px-4 py-2">
+                        {new Date(email.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2 text-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyOpen(true);
+                            setEmailForm({
+                              to: email.from,
+                              subject: "Re: " + email.subject,
+                              body: "",
+                            });
+                          }}
+                          title="Cevapla"
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <FiCornerUpLeft size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setForwardOpen(true);
+                            setEmailForm({
+                              to: "",
+                              subject: "Fwd: " + email.subject,
+                              body:
+                                "\n\n--- Orijinal Mesaj ---\n" + email.body,
+                            });
+                          }}
+                          title="İlet"
+                          className="text-green-500 hover:text-green-700"
+                        >
+                          <FiCornerUpRight size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(email.id);
+                          }}
+                          title="Sil"
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={4} className="px-4 py-2 text-center">
@@ -339,7 +441,8 @@ export default function InboxPage() {
                     setEmailForm({
                       to: "",
                       subject: "Fwd: " + selectedEmail.subject,
-                      body: "\n\n--- Orijinal Mesaj ---\n" + selectedEmail.body,
+                      body:
+                        "\n\n--- Orijinal Mesaj ---\n" + selectedEmail.body,
                     });
                   }}
                   className="bg-green-500 text-white px-4 py-2 rounded"
