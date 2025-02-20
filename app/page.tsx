@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import "./globals.css";
-
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword
+} from "firebase/auth";
+import { auth } from "../firebaseClient"; // Directly import the same auth
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 import firebaseApp from "../firebaseClient";
 
-// Import Firestore functions
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-
-const auth = getAuth(firebaseApp);
 const firestore = getFirestore(firebaseApp);
 
 const AuthPage = () => {
@@ -41,13 +40,11 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
-      // Only sign in with email and password
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      // No need to call setPersistence again here; it's already set globally
+      const credential = await signInWithEmailAndPassword(auth, email, password);
       await saveUserToFirestore(credential.user);
+
+      // Redirect on successful login
       router.push("/navigation");
     } catch (err: any) {
       setError(err.message);

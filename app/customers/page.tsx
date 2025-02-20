@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 // Import Framer Motion components
 import { motion, AnimatePresence } from "framer-motion";
 // Import React Icons (Feather Icons)
-import { FiEdit, FiTrash2, FiClipboard, FiUser, FiMail } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiUser, FiMail } from "react-icons/fi";
 
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -79,6 +79,7 @@ export default function CustomersPage() {
   // E-posta Modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any>(null);
+  const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -239,6 +240,7 @@ export default function CustomersPage() {
       return;
     }
     setSelectedEmailCustomer(customer);
+    setEmailSubject("");
     setEmailMessage("");
     setEmailModalOpen(true);
   };
@@ -255,8 +257,8 @@ export default function CustomersPage() {
         credentials: "include",
         body: JSON.stringify({
           to: selectedEmailCustomer.email,
+          subject: emailSubject,
           message: emailMessage,
-          subject: "CRMCTS'ten Mesaj",
         }),
       });
       if (!response.ok) {
@@ -264,6 +266,7 @@ export default function CustomersPage() {
       }
       setEmailModalOpen(false);
       setSelectedEmailCustomer(null);
+      setEmailSubject("");
       setEmailMessage("");
     } catch (err: any) {
       console.error("E-posta gönderilirken hata:", err);
@@ -388,37 +391,6 @@ export default function CustomersPage() {
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          {/* Not (Açıklama) İkonu – her zaman göster */}
-                          <div className="relative inline-block">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTooltipCustomerId(
-                                  tooltipCustomerId === customer.id
-                                    ? null
-                                    : customer.id
-                                );
-                              }}
-                              title="Notu Gör"
-                              className="text-gray-500 hover:text-gray-700 transition-colors"
-                            >
-                              <FiClipboard size={20} />
-                            </button>
-                            <AnimatePresence>
-                              {tooltipCustomerId === customer.id && (
-                                <motion.div
-                                  ref={tooltipRef}
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -10 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[600px] whitespace-normal"
-                                >
-                                  {customer.description || "Açıklama yok"}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
                           {/* Sadece sahibi için: Düzenle ve Sil */}
                           {isOwner(customer) && (
                             <>
@@ -650,10 +622,15 @@ export default function CustomersPage() {
               <p className="text-gray-700 dark:text-gray-300">
                 <strong>Adres:</strong> {selectedCustomerInfo.address}
               </p>
-              {selectedCustomerInfo.description && (
+              {selectedCustomerInfo.lastCallDate && (
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Açıklama:</strong> {selectedCustomerInfo.description}
+                  <strong>Son Arama Tarihi:</strong> {selectedCustomerInfo.lastCallDate}
                 </p>
+              )}
+              {selectedCustomerInfo.description && (
+                <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-gray-300 mt-2">
+                  {selectedCustomerInfo.description}
+                </div>
               )}
               <p className="text-gray-700 dark:text-gray-300 mt-4">
                 <strong>Ekleyen:</strong>{" "}
@@ -661,12 +638,6 @@ export default function CustomersPage() {
                   ? selectedCustomerInfo.ownerName
                   : "Bilinmiyor"}
               </p>
-              {selectedCustomerInfo.lastCallDate && (
-                <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Son Arama Tarihi:</strong>{" "}
-                  {selectedCustomerInfo.lastCallDate}
-                </p>
-              )}
               <div className="flex justify-end mt-6">
                 <button
                   onClick={() => setCustomerInfoModalOpen(false)}
@@ -733,6 +704,18 @@ export default function CustomersPage() {
                     value={selectedEmailCustomer.email}
                     readOnly
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Konu:
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    required
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                   />
                 </div>
                 <div>
