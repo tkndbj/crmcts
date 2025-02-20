@@ -2,20 +2,32 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FiX, FiCornerUpLeft, FiTrash2, FiCornerUpRight } from "react-icons/fi";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import firebaseApp from "../../firebaseClient";
 
 type Email = {
   id: string;
   from: string;
+  to?: string;
   subject: string;
   date: string;
   body: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  name: string;
+};
+
 export default function InboxPage() {
+  const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
   const [emailForm, setEmailForm] = useState({
     to: "",
     subject: "",
@@ -23,12 +35,35 @@ export default function InboxPage() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
 
-  // Gerçek API'den e-postaları alıyoruz.
+  // Fetch real users from Firestore for forward selection.
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const db = getFirestore(firebaseApp);
+        const usersCol = collection(db, "users");
+        const snapshot = await getDocs(usersCol);
+        const userList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          email: doc.data().email,
+          name: doc.data().displayName,
+        }));
+        setUsers(userList);
+      } catch (error) {
+        console.error("Kullanıcılar alınırken hata:", error);
+      }
+    }
+    fetchUsers();
+  }, []);
+
+  // Fetch emails from API endpoint based on active tab.
   useEffect(() => {
     async function fetchEmails() {
       try {
-        const res = await fetch("/api/gmail/inbox");
+        // Endpoint should return the latest 50 emails.
+        const endpoint = activeTab === "inbox" ? "/api/gmail/inbox" : "/api/gmail/sent";
+        const res = await fetch(endpoint);
         const data = await res.json();
 
         if (!res.ok) {
@@ -36,7 +71,6 @@ export default function InboxPage() {
           setEmails([]);
           return;
         }
-        // Ensure data is an array before calling .filter
         if (Array.isArray(data)) {
           setEmails(data);
         } else {
@@ -48,16 +82,17 @@ export default function InboxPage() {
       }
     }
     fetchEmails();
-  }, []);
+  }, [activeTab]);
 
-  // Arama sorgusuna göre filtreleme yapıyoruz.
+  // Filter emails based on search query.
   const filteredEmails = emails.filter(
     (email) =>
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.from.toLowerCase().includes(searchQuery.toLowerCase())
+      (email.from && email.from.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (email.to && email.to.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Yeni mesaj gönderimi
+  // Handler for composing a new message.
   const handleComposeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -69,13 +104,13 @@ export default function InboxPage() {
       if (!res.ok) throw new Error("Mail gönderilemedi");
       setComposeOpen(false);
       setEmailForm({ to: "", subject: "", body: "" });
-      // İsteğe bağlı: Inbox'u yenileyin.
+      // İsteğe bağlı: E-postaları yenileyin.
     } catch (error: any) {
       console.error("Mail gönderilirken hata:", error);
     }
   };
 
-  // Cevap gönderimi
+  // Handler for reply submission.
   const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -88,9 +123,36 @@ export default function InboxPage() {
       setReplyOpen(false);
       setSelectedEmail(null);
       setEmailForm({ to: "", subject: "", body: "" });
-      // İsteğe bağlı: Inbox'u yenileyin.
+      // İsteğe bağlı: E-postaları yenileyin.
     } catch (error: any) {
       console.error("Cevap gönderilirken hata:", error);
+    }
+  };
+
+  // Handler for forward submission.
+  const handleForwardSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailForm),
+      });
+      if (!res.ok) throw new Error("İletme gönderilemedi");
+      setForwardOpen(false);
+      setSelectedEmail(null);
+      setEmailForm({ to: "", subject: "", body: "" });
+      // İsteğe bağlı: E-postaları yenileyin.
+    } catch (error: any) {
+      console.error("İletme gönderilirken hata:", error);
+    }
+  };
+
+  // Handler for deleting an email (demo: remove from state)
+  const handleDelete = (id: string) => {
+    if (window.confirm("Maili silmek istediğinize emin misiniz?")) {
+      setEmails((prev) => prev.filter((email) => email.id !== id));
+      // Gerçek uygulamada DELETE API çağrısı yapın.
     }
   };
 
@@ -105,10 +167,20 @@ export default function InboxPage() {
           Yeni Mesaj
         </button>
         <ul>
-          <li className="p-2 rounded hover:bg-gray-200 cursor-pointer font-bold">
+          <li
+            onClick={() => setActiveTab("inbox")}
+            className={`p-2 rounded hover:bg-gray-200 cursor-pointer ${
+              activeTab === "inbox" ? "font-bold" : ""
+            }`}
+          >
             Gelen Kutusu
           </li>
-          <li className="p-2 rounded hover:bg-gray-200 cursor-pointer">
+          <li
+            onClick={() => setActiveTab("sent")}
+            className={`p-2 rounded hover:bg-gray-200 cursor-pointer ${
+              activeTab === "sent" ? "font-bold" : ""
+            }`}
+          >
             Gönderilmiş
           </li>
         </ul>
@@ -117,7 +189,9 @@ export default function InboxPage() {
       {/* Ana İçerik */}
       <main className="flex-1 p-4">
         <div className="mb-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Gelen Kutusu</h1>
+          <h1 className="text-2xl font-bold">
+            {activeTab === "inbox" ? "Gelen Kutusu" : "Gönderilmiş"}
+          </h1>
           <input
             type="text"
             placeholder="Mail ara"
@@ -126,38 +200,78 @@ export default function InboxPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        {error && (
-          <div className="mb-4 text-red-600">
-            {error}
-          </div>
-        )}
-        <div className="bg-white shadow rounded">
+        {error && <div className="mb-4 text-red-600">{error}</div>}
+        {/* Responsive container for horizontal scroll on mobile */}
+        <div className="bg-white shadow rounded overflow-x-auto sm:overflow-x-visible">
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left">Kimden</th>
+                <th className="px-4 py-2 text-left">
+                  {activeTab === "inbox" ? "Kimden" : "Kime"}
+                </th>
                 <th className="px-4 py-2 text-left">Konu</th>
                 <th className="px-4 py-2 text-left">Tarih</th>
+                <th className="px-4 py-2 text-center">İşlemler</th>
               </tr>
             </thead>
             <tbody>
               {filteredEmails.length > 0 ? (
                 filteredEmails.map((email) => (
-                  <tr
-                    key={email.id}
-                    className="hover:bg-gray-100 cursor-pointer"
-                    onClick={() => setSelectedEmail(email)}
-                  >
-                    <td className="px-4 py-2">{email.from}</td>
+                  <tr key={email.id} className="hover:bg-gray-100">
+                    <td className="px-4 py-2">
+                      {activeTab === "inbox" ? email.from : email.to}
+                    </td>
                     <td className="px-4 py-2">{email.subject}</td>
                     <td className="px-4 py-2">
                       {new Date(email.date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2 text-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReplyOpen(true);
+                          setEmailForm({
+                            to: email.from,
+                            subject: "Re: " + email.subject,
+                            body: "",
+                          });
+                        }}
+                        title="Cevapla"
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        <FiCornerUpLeft size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setForwardOpen(true);
+                          setEmailForm({
+                            to: "",
+                            subject: "Fwd: " + email.subject,
+                            body: "\n\n--- Orijinal Mesaj ---\n" + email.body,
+                          });
+                        }}
+                        title="İlet"
+                        className="text-green-500 hover:text-green-700"
+                      >
+                        <FiCornerUpRight size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(email.id);
+                        }}
+                        title="Sil"
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="px-4 py-2 text-center">
+                  <td colSpan={4} className="px-4 py-2 text-center">
                     Mail bulunamadı.
                   </td>
                 </tr>
@@ -174,41 +288,65 @@ export default function InboxPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
-            <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
+            <motion.div className="bg-white rounded-lg p-6 w-full max-w-2xl relative">
               <button
                 onClick={() => setSelectedEmail(null)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
               >
-                Kapat
+                <FiX size={24} />
               </button>
-              <h2 className="text-xl font-bold mb-2">
+              <h2 className="text-2xl font-bold mb-2">
                 {selectedEmail.subject}
               </h2>
-              <p className="text-gray-600 mb-2">
-                <strong>Kimden:</strong> {selectedEmail.from}
-              </p>
-              <p className="text-gray-600 mb-4">
-                <strong>Tarih:</strong>{" "}
-                {new Date(selectedEmail.date).toLocaleString()}
-              </p>
-              <div className="mb-4 whitespace-pre-wrap">
-                {selectedEmail.body}
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">
+                  <strong>Kimden:</strong> {selectedEmail.from}
+                </p>
+                {activeTab === "sent" && selectedEmail.to && (
+                  <p className="text-sm text-gray-600">
+                    <strong>Kime:</strong> {selectedEmail.to}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">
+                  <strong>Tarih:</strong>{" "}
+                  {new Date(selectedEmail.date).toLocaleString()}
+                </p>
               </div>
-              <button
-                onClick={() => {
-                  setReplyOpen(true);
-                  setEmailForm({
-                    to: selectedEmail.from,
-                    subject: "Re: " + selectedEmail.subject,
-                    body: "",
-                  });
-                }}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Cevapla
-              </button>
+              <div className="prose max-w-none mb-4">
+                {selectedEmail.body.split("\n").map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    setReplyOpen(true);
+                    setEmailForm({
+                      to: selectedEmail.from,
+                      subject: "Re: " + selectedEmail.subject,
+                      body: "",
+                    });
+                  }}
+                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                >
+                  Cevapla
+                </button>
+                <button
+                  onClick={() => {
+                    setForwardOpen(true);
+                    setEmailForm({
+                      to: "",
+                      subject: "Fwd: " + selectedEmail.subject,
+                      body: "\n\n--- Orijinal Mesaj ---\n" + selectedEmail.body,
+                    });
+                  }}
+                  className="bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  İlet
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -221,14 +359,14 @@ export default function InboxPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
             <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
               <button
                 onClick={() => setComposeOpen(false)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
               >
-                Kapat
+                <FiX size={24} />
               </button>
               <h2 className="text-xl font-bold mb-4">Yeni Mesaj</h2>
               <form onSubmit={handleComposeSubmit} className="space-y-4">
@@ -287,14 +425,14 @@ export default function InboxPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
           >
             <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
               <button
                 onClick={() => setReplyOpen(false)}
                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
               >
-                Kapat
+                <FiX size={24} />
               </button>
               <h2 className="text-xl font-bold mb-4">Cevapla</h2>
               <form onSubmit={handleReplySubmit} className="space-y-4">
@@ -336,6 +474,78 @@ export default function InboxPage() {
                   className="bg-green-500 text-white px-4 py-2 rounded"
                 >
                   Cevap Gönder
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* İlet Modal */}
+      <AnimatePresence>
+        {forwardOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4"
+          >
+            <motion.div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
+              <button
+                onClick={() => setForwardOpen(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+              >
+                <FiX size={24} />
+              </button>
+              <h2 className="text-xl font-bold mb-4">İlet</h2>
+              <form onSubmit={handleForwardSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium">Kime</label>
+                  <select
+                    value={emailForm.to}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, to: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  >
+                    <option value="">Bir kullanıcı seçin</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.email}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Konu</label>
+                  <input
+                    type="text"
+                    value={emailForm.subject}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, subject: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">İçerik</label>
+                  <textarea
+                    value={emailForm.body}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, body: e.target.value })
+                    }
+                    required
+                    rows={6}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  className="bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  İlet Gönder
                 </button>
               </form>
             </motion.div>
