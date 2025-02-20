@@ -1,4 +1,3 @@
-// app/api/auth/google/callback/route.ts
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -25,8 +24,12 @@ export async function GET(request: Request) {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
 
+    // Retrieve user's email using OAuth2 API
+    const oauth2 = google.oauth2({ auth: oAuth2Client, version: "v2" });
+    const { data: userInfo } = await oauth2.userinfo.get();
+    (tokens as any).email = userInfo.email; // Attach the email to tokens
+
     // Example: Store tokens in an HTTP-only cookie
-    // In production, consider a secure storage solution.
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
     response.cookies.set("google-tokens", JSON.stringify(tokens), {
       httpOnly: true,
