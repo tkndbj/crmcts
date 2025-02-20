@@ -14,6 +14,7 @@ export async function GET(request: Request) {
   const scopes = [
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/userinfo.email", // New scope for email
   ];
 
   // Generate the Google OAuth URL

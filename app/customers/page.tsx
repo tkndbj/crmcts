@@ -28,11 +28,9 @@ import {
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 
-/** Helper to format a string of digits into DD/MM/YYYY as user types */
+/** Yardımcı: Kullanıcının girdiği rakamları DD/MM/YYYY biçimine dönüştürür */
 function formatDDMMYYYY(value: string) {
-  // Keep only digits
   let digits = value.replace(/\D/g, "");
-  // Ensure max length of 8 digits
   if (digits.length > 8) digits = digits.slice(0, 8);
 
   const day = digits.slice(0, 2);
@@ -49,10 +47,16 @@ function formatDDMMYYYY(value: string) {
   return formatted;
 }
 
-export default function CustomersPage() {
-  const router = useRouter(); // Moved inside component
+/** Yardımcı: Mevcut kullanıcının müşterinin sahibi olup olmadığını kontrol eder */
+function isOwner(customer: any) {
+  const user = auth.currentUser;
+  return user && customer.owner === user.uid;
+}
 
-  // State for customer data and modal/form handling
+export default function CustomersPage() {
+  const router = useRouter();
+
+  // Müşteri verileri ve modal/form işlemleri için state
   const [customers, setCustomers] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,30 +67,29 @@ export default function CustomersPage() {
     email: "",
     phone: "",
     address: "",
-    lastCallDate: "", // New field
+    lastCallDate: "",
     description: "",
   });
-  // For tooltip: track which customer’s description is being shown
+  // Tooltip için: Hangi müşterinin açıklaması gösteriliyor?
   const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(
     null
   );
-  // Ref for the tooltip bubble to handle outside clicks
   const tooltipRef = useRef<HTMLDivElement>(null);
-  // Tab state: "genel" (all customers) or "kendi" (current user's customers)
+  // Sekme durumu: "genel" (tüm müşteriler) veya "kendi" (sadece kullanıcının müşterileri)
   const [activeTab, setActiveTab] = useState<"genel" | "kendi">("genel");
 
-  // New state for Customer Information Modal
+  // Müşteri Bilgileri Modal state
   const [customerInfoModalOpen, setCustomerInfoModalOpen] = useState(false);
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState<any>(null);
 
-  // New state for Email Modal
+  // E-posta Modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any>(null);
   const [emailMessage, setEmailMessage] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Fetch customers live
+  // Müşterileri canlı olarak getir
   useEffect(() => {
     const customersRef = collection(firestore, "customers");
     const unsubscribe = onSnapshot(
@@ -105,7 +108,7 @@ export default function CustomersPage() {
     return () => unsubscribe();
   }, []);
 
-  // Set up a document click listener to close tooltip when clicking outside
+  // Tooltip için dış tıklamayı dinle
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -124,14 +127,14 @@ export default function CustomersPage() {
     };
   }, [tooltipCustomerId]);
 
-  // Update form state (generic for most fields)
+  // Form state güncelleme
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Special handler for Last Call Date to auto-insert slashes
+  // Last Call Date için özel handler
   const handleLastCallDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
       ...form,
@@ -139,7 +142,7 @@ export default function CustomersPage() {
     });
   };
 
-  // Called when the form is submitted (for both add and edit)
+  // Müşteri ekleme/düzenleme formu gönderildiğinde
   const handleSaveCustomer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -147,22 +150,21 @@ export default function CustomersPage() {
     try {
       const user = auth.currentUser;
       if (!user) {
-        setError("You must be logged in to perform this action.");
+        setError("Bu işlemi yapmak için giriş yapmış olmanız gerekir.");
         setLoading(false);
         return;
       }
 
       if (!selectedCustomer) {
-        // Include ownerName from the current user's displayName/email/fallback
         await addDoc(collection(firestore, "customers"), {
           name: form.name,
           email: form.email,
           phone: form.phone,
           address: form.address,
-          lastCallDate: form.lastCallDate, // Store new field
+          lastCallDate: form.lastCallDate,
           description: form.description,
-          owner: user.uid, // Set owner to current user's UID
-          ownerName: user.displayName || user.email || "Unknown",
+          owner: user.uid,
+          ownerName: user.displayName || user.email || "Bilinmiyor",
           createdAt: new Date().toISOString(),
         });
       } else {
@@ -172,12 +174,11 @@ export default function CustomersPage() {
           email: form.email,
           phone: form.phone,
           address: form.address,
-          lastCallDate: form.lastCallDate, // Update field
+          lastCallDate: form.lastCallDate,
           description: form.description,
           updatedAt: new Date().toISOString(),
         });
       }
-      // Reset form and close modal
       setForm({
         name: "",
         email: "",
@@ -189,14 +190,14 @@ export default function CustomersPage() {
       setSelectedCustomer(null);
       setModalOpen(false);
     } catch (error: any) {
-      console.error("Error saving customer:", error);
-      setError("Failed to save customer. Please try again.");
+      console.error("Müşteri kaydedilirken hata:", error);
+      setError("Müşteri kaydedilemedi. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Open modal for editing a customer (pre-fill form)
+  // Müşteri düzenleme modalını aç
   const handleEditCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setForm({
@@ -210,41 +211,35 @@ export default function CustomersPage() {
     setModalOpen(true);
   };
 
-  // Delete customer with confirmation
+  // Müşteriyi sil (onay ile)
   const handleDeleteCustomer = async (customer: any) => {
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${customer.name}?`
+      `${customer.name} adlı müşteriyi silmek istediğinize emin misiniz?`
     );
     if (confirmDelete) {
       try {
         await deleteDoc(doc(firestore, "customers", customer.id));
       } catch (error: any) {
-        console.error("Error deleting customer:", error);
-        alert("Failed to delete customer. Please try again.");
+        console.error("Müşteri silinirken hata:", error);
+        alert("Müşteri silinemedi. Lütfen tekrar deneyin.");
       }
     }
   };
 
-  // Determine if the current user is the owner of the customer
-  const isOwner = (customer: any) => {
-    const user = auth.currentUser;
-    return user && customer.owner === user.uid;
-  };
-
-  // New function: Handle clicking on a customer name to show customer information modal
+  // Müşteri bilgileri modalını aç
   const handleCustomerInfo = (customer: any) => {
     setSelectedCustomerInfo(customer);
     setCustomerInfoModalOpen(true);
   };
 
-  // New function: Handle clicking on email icon to open email modal
+  // E-posta modalını aç
   const handleEmailIconClick = (customer: any) => {
     setSelectedEmailCustomer(customer);
     setEmailMessage("");
     setEmailModalOpen(true);
   };
 
-  // New function: Handle sending email via your Gmail API endpoint
+  // E-posta gönderme işlemi
   const handleSendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEmailError(null);
@@ -252,40 +247,41 @@ export default function CustomersPage() {
     try {
       const response = await fetch("/api/gmail/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           to: selectedEmailCustomer.email,
           message: emailMessage,
-          subject: "Message from CRMCTS", // Adjust subject as needed
+          subject: "CRMCTS'ten Mesaj",
         }),
       });
       if (!response.ok) {
-        throw new Error("Failed to send email");
+        throw new Error("E-posta gönderilemedi");
       }
-      // Email sent successfully – close the modal
       setEmailModalOpen(false);
       setSelectedEmailCustomer(null);
       setEmailMessage("");
     } catch (err: any) {
-      console.error("Error sending email:", err);
-      setEmailError(err.message || "Error sending email");
+      console.error("E-posta gönderilirken hata:", err);
+      setEmailError(err.message || "E-posta gönderilirken hata oluştu");
     } finally {
       setEmailSending(false);
     }
   };
 
-  // Filter customers based on activeTab
+  // Filtreleme: aktif sekmeye göre müşteri listesi
   const displayedCustomers =
     activeTab === "genel"
       ? customers
-      : customers.filter((customer) => isOwner(customer));
+      : customers.filter((customer) => {
+          const user = auth.currentUser;
+          return user && customer.owner === user.uid;
+        });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header with Tabs */}
+        {/* Üst Kısım – Sekmeler */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex space-x-4">
             <button
@@ -306,7 +302,7 @@ export default function CustomersPage() {
                   : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
             >
-              Kendi müşterilerim
+              Kendi Müşterilerim
             </button>
           </div>
           <button
@@ -324,29 +320,29 @@ export default function CustomersPage() {
             }}
             className="bg-blue-500 text-white px-5 py-2 rounded hover:bg-blue-600 transition-colors"
           >
-            + Add Customer
+            Müşteri Ekle
           </button>
         </div>
 
-        {/* Customers Table */}
+        {/* Müşteriler Tablosu */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
             <thead className="bg-gray-100 dark:bg-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Name
+                  İsim
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Email
+                  E-posta
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Phone
+                  Telefon
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Address
+                  Adres
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                  Actions
+                  İşlemler
                 </th>
               </tr>
             </thead>
@@ -355,7 +351,6 @@ export default function CustomersPage() {
                 displayedCustomers.map((customer) => (
                   <tr key={customer.id} className="whitespace-nowrap">
                     <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                      {/* Clicking the customer name opens the customer info modal */}
                       <span
                         onClick={() => handleCustomerInfo(customer)}
                         className="cursor-pointer hover:text-blue-500"
@@ -373,70 +368,69 @@ export default function CustomersPage() {
                       {customer.address}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
-                      {isOwner(customer) && (
-                        <div className="flex items-center justify-center space-x-2">
-                          {/* Description Icon */}
-                          {customer.description && (
-                            <div className="relative inline-block">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTooltipCustomerId(
-                                    tooltipCustomerId === customer.id
-                                      ? null
-                                      : customer.id
-                                  );
-                                }}
-                                title="View Description"
-                                className="text-gray-500 hover:text-gray-700 transition-colors"
-                              >
-                                <FiMessageSquare size={20} />
-                              </button>
-                              <AnimatePresence>
-                                {tooltipCustomerId === customer.id && (
-                                  <motion.div
-                                    ref={tooltipRef}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[400px] whitespace-normal"
-                                  >
-                                    {customer.description}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          )}
-                          {/* Edit Icon */}
-                          <button
-                            onClick={() => handleEditCustomer(customer)}
-                            title="Edit Customer"
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
-                          >
-                            <FiEdit size={20} />
-                          </button>
-                          {/* Delete Icon */}
-                          <button
-                            onClick={() => handleDeleteCustomer(customer)}
-                            title="Delete Customer"
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <FiTrash2 size={20} />
-                          </button>
-                          {/* Email Icon */}
+                      <div className="flex items-center justify-center space-x-2">
+                        {/* Not (Açıklama) İkonu – her zaman göster */}
+                        <div className="relative inline-block">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleEmailIconClick(customer);
+                              setTooltipCustomerId(
+                                tooltipCustomerId === customer.id
+                                  ? null
+                                  : customer.id
+                              );
                             }}
-                            title="Send Email"
-                            className="text-green-500 hover:text-green-700 transition-colors"
+                            title="Açıklamayı Gör"
+                            className="text-gray-500 hover:text-gray-700 transition-colors"
                           >
-                            <FiMail size={20} />
+                            <FiMessageSquare size={20} />
                           </button>
+                          <AnimatePresence>
+                            {tooltipCustomerId === customer.id && (
+                              <motion.div
+                                ref={tooltipRef}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded p-2 z-50 w-auto max-w-[400px] whitespace-normal"
+                              >
+                                {customer.description || "Açıklama yok"}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      )}
+                        {/* E-posta İkonu – her zaman göster */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEmailIconClick(customer);
+                          }}
+                          title="E-posta Gönder"
+                          className="text-green-500 hover:text-green-700 transition-colors"
+                        >
+                          <FiMail size={20} />
+                        </button>
+                        {/* Sadece sahibi için: Düzenle ve Sil */}
+                        {isOwner(customer) && (
+                          <>
+                            <button
+                              onClick={() => handleEditCustomer(customer)}
+                              title="Müşteriyi Düzenle"
+                              className="text-blue-500 hover:text-blue-700 transition-colors"
+                            >
+                              <FiEdit size={20} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCustomer(customer)}
+                              title="Müşteriyi Sil"
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                            >
+                              <FiTrash2 size={20} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -446,7 +440,7 @@ export default function CustomersPage() {
                     colSpan={5}
                     className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
-                    No customers found.
+                    Müşteri bulunamadı.
                   </td>
                 </tr>
               )}
@@ -455,7 +449,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Main Modal for Adding/Editing Customer */}
+      {/* Müşteri Ekle/Düzenle Modal */}
       <AnimatePresence>
         {modalOpen && (
           <motion.div
@@ -464,7 +458,6 @@ export default function CustomersPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center z-50"
           >
-            {/* Dimmed Background */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -476,7 +469,6 @@ export default function CustomersPage() {
                 setSelectedCustomer(null);
               }}
             ></motion.div>
-            {/* Modal Content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -485,7 +477,7 @@ export default function CustomersPage() {
               className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-2xl"
             >
               <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                {selectedCustomer ? "Edit Customer" : "Add Customer"}
+                {selectedCustomer ? "Müşteriyi Düzenle" : "Müşteri Ekle"}
               </h2>
               {error && (
                 <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
@@ -495,7 +487,7 @@ export default function CustomersPage() {
               <form onSubmit={handleSaveCustomer} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Name
+                    İsim
                   </label>
                   <input
                     type="text"
@@ -508,7 +500,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Email
+                    E-posta
                   </label>
                   <input
                     type="email"
@@ -521,7 +513,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Phone
+                    Telefon
                   </label>
                   <input
                     type="text"
@@ -534,7 +526,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Address
+                    Adres
                   </label>
                   <input
                     type="text"
@@ -544,15 +536,14 @@ export default function CustomersPage() {
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                   />
                 </div>
-                {/* New Field: Last Call Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Last call date
+                    Son Arama Tarihi
                   </label>
                   <input
                     type="text"
                     name="lastCallDate"
-                    placeholder="DD/MM/YYYY"
+                    placeholder="GG/AA/YYYY"
                     value={form.lastCallDate}
                     onChange={handleLastCallDateChange}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -560,7 +551,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Description
+                    Açıklama
                   </label>
                   <textarea
                     name="description"
@@ -579,7 +570,7 @@ export default function CustomersPage() {
                     }}
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
                   >
-                    Cancel
+                    İptal
                   </button>
                   <button
                     type="submit"
@@ -588,11 +579,11 @@ export default function CustomersPage() {
                   >
                     {loading
                       ? selectedCustomer
-                        ? "Updating..."
-                        : "Adding..."
+                        ? "Güncelleniyor..."
+                        : "Ekleniyor..."
                       : selectedCustomer
-                      ? "Update Customer"
-                      : "Add Customer"}
+                      ? "Müşteriyi Güncelle"
+                      : "Müşteri Ekle"}
                   </button>
                 </div>
               </form>
@@ -601,7 +592,7 @@ export default function CustomersPage() {
         )}
       </AnimatePresence>
 
-      {/* Customer Information Modal */}
+      {/* Müşteri Bilgileri Modal */}
       <AnimatePresence>
         {customerInfoModalOpen && selectedCustomerInfo && (
           <motion.div
@@ -610,7 +601,6 @@ export default function CustomersPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center z-50"
           >
-            {/* Dimmed Background */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -619,7 +609,6 @@ export default function CustomersPage() {
               className="fixed inset-0 bg-black"
               onClick={() => setCustomerInfoModalOpen(false)}
             ></motion.div>
-            {/* Modal Content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -627,7 +616,6 @@ export default function CustomersPage() {
               transition={{ duration: 0.3 }}
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
             >
-              {/* Profile Icon Button on Top Right */}
               <button
                 onClick={() =>
                   router.push(`/dynamiccustomer?id=${selectedCustomerInfo.id}`)
@@ -638,37 +626,35 @@ export default function CustomersPage() {
               </button>
               <div className="mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  Customer Information
+                  Müşteri Bilgileri
                 </h3>
               </div>
               <p className="text-gray-700 dark:text-gray-300">
-                <strong>Name:</strong> {selectedCustomerInfo.name}
+                <strong>İsim:</strong> {selectedCustomerInfo.name}
               </p>
               <p className="text-gray-700 dark:text-gray-300">
-                <strong>Email:</strong> {selectedCustomerInfo.email}
+                <strong>E-posta:</strong> {selectedCustomerInfo.email}
               </p>
               <p className="text-gray-700 dark:text-gray-300">
-                <strong>Phone:</strong> {selectedCustomerInfo.phone}
+                <strong>Telefon:</strong> {selectedCustomerInfo.phone}
               </p>
               <p className="text-gray-700 dark:text-gray-300">
-                <strong>Address:</strong> {selectedCustomerInfo.address}
+                <strong>Adres:</strong> {selectedCustomerInfo.address}
               </p>
               {selectedCustomerInfo.description && (
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Description:</strong>{" "}
-                  {selectedCustomerInfo.description}
+                  <strong>Açıklama:</strong> {selectedCustomerInfo.description}
                 </p>
               )}
               <p className="text-gray-700 dark:text-gray-300 mt-4">
-                <strong>Added by:</strong>{" "}
+                <strong>Ekleyen:</strong>{" "}
                 {selectedCustomerInfo.ownerName
                   ? selectedCustomerInfo.ownerName
-                  : "Unknown"}
+                  : "Bilinmiyor"}
               </p>
-              {/* Show Last Call Date if it exists */}
               {selectedCustomerInfo.lastCallDate && (
                 <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Last call date:</strong>{" "}
+                  <strong>Son Arama Tarihi:</strong>{" "}
                   {selectedCustomerInfo.lastCallDate}
                 </p>
               )}
@@ -677,7 +663,7 @@ export default function CustomersPage() {
                   onClick={() => setCustomerInfoModalOpen(false)}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                  Close
+                  Kapat
                 </button>
               </div>
             </motion.div>
@@ -685,7 +671,7 @@ export default function CustomersPage() {
         )}
       </AnimatePresence>
 
-      {/* Email Modal */}
+      {/* E-posta Modal */}
       <AnimatePresence>
         {emailModalOpen && selectedEmailCustomer && (
           <motion.div
@@ -694,7 +680,6 @@ export default function CustomersPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center z-50"
           >
-            {/* Dimmed Background */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -703,7 +688,6 @@ export default function CustomersPage() {
               className="fixed inset-0 bg-black"
               onClick={() => setEmailModalOpen(false)}
             ></motion.div>
-            {/* Modal Content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -712,7 +696,7 @@ export default function CustomersPage() {
               className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-lg"
             >
               <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                Send Email
+                E-posta Gönder
               </h2>
               {emailError && (
                 <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
@@ -722,7 +706,7 @@ export default function CustomersPage() {
               <form onSubmit={handleSendEmail} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    From:
+                    Gönderen:
                   </label>
                   <input
                     type="email"
@@ -733,7 +717,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    To:
+                    Kime:
                   </label>
                   <input
                     type="email"
@@ -744,7 +728,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Message:
+                    Mesaj:
                   </label>
                   <textarea
                     value={emailMessage}
@@ -760,14 +744,14 @@ export default function CustomersPage() {
                     onClick={() => setEmailModalOpen(false)}
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
                   >
-                    Cancel
+                    İptal
                   </button>
                   <button
                     type="submit"
                     disabled={emailSending}
                     className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
                   >
-                    {emailSending ? "Sending..." : "Send Email"}
+                    {emailSending ? "Gönderiliyor..." : "E-posta Gönder"}
                   </button>
                 </div>
               </form>
