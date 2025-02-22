@@ -14,15 +14,21 @@ export async function GET(req: NextRequest) {
 
     let customersData: any[] = [];
     if (ownerParam === "all") {
-      const snapshot = await adminFirestore.collection("customers").get();
+      // Limit to 20 docs to avoid timeouts
+      const snapshot = await adminFirestore
+        .collection("customers")
+        .limit(20) // <-- limit results
+        .get();
       customersData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
     } else {
+      // For a user's own data, we can limit or not
       const snapshot = await adminFirestore
         .collection("customers")
         .where("owner", "==", ownerParam)
+        .limit(20) // optional limit here too
         .get();
       customersData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -35,7 +41,7 @@ export async function GET(req: NextRequest) {
       <html>
         <head><title>Rapor</title></head>
         <body>
-          <h1>${ownerParam} Müşteri Raporu</h1>
+          <h1>${ownerParam} Müşteri Raporu (max 20)</h1>
           <ul>
             ${customersData
               .map((c) => `<li>${c.name} - ${c.email}</li>`)
