@@ -24,6 +24,7 @@ import {
   FiMail,
   FiFileText,
   FiPhone,
+  FiX,
 } from "react-icons/fi";
 
 // ***** Replace jsPDF with pdfmake *****
@@ -58,6 +59,13 @@ function formatDDMMYYYY(value: string) {
     formatted += "/" + year;
   }
   return formatted;
+}
+
+/** Helper: Parse a DD/MM/YYYY string into a Date object */
+function parseDateStr(dateStr: string) {
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return new Date(0);
+  return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
 }
 
 /** Helper: Check if the current user is the owner of a customer */
@@ -96,7 +104,7 @@ function CustomersPageContent() {
     null
   );
   const tooltipRef = useRef<HTMLDivElement>(null);
-  // Added "cevapsizlar" option to the activeTab state
+  // Active tab state: "genel", "kendi", or "cevapsizlar"
   const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">(
     "genel"
   );
@@ -115,6 +123,24 @@ function CustomersPageContent() {
   const [updateCallModalOpen, setUpdateCallModalOpen] = useState(false);
   const [selectedCallCustomer, setSelectedCallCustomer] = useState<any>(null);
   const [newCallDate, setNewCallDate] = useState("");
+
+  // New state for sorting modal and sort options per tab
+  const [sortModalOpen, setSortModalOpen] = useState(false);
+  const [sortOptions, setSortOptions] = useState({
+    genel: "",
+    kendi: "",
+    cevapsizlar: "",
+  });
+
+  // Mapping of sort option codes to friendly names.
+  const sortOptionNames: Record<string, string> = {
+    createdAsc: "Eklenme tarihine göre (eskiden yeniye)",
+    createdDesc: "Eklenme tarihine göre (yeniden eskiye)",
+    nameAsc: "Alfabetik",
+    nameDesc: "Alfabetik (tersden)",
+    lastCallAsc: "Son aranma tarihine göre (eskiden yeniye)",
+    lastCallDesc: "Son aranma tarihine göre (yeniden eskiye)",
+  };
 
   // Fetch customers live with caching
   useEffect(() => {
@@ -372,9 +398,8 @@ function CustomersPageContent() {
     }
   };
 
-  // Update displayedCustomers based on activeTab.
-  // Under the "Genel" tab, filter out those with lastCallDate "00/00/0000".
-  const displayedCustomers =
+  // Compute filtered customers based on active tab.
+  const filteredCustomers =
     activeTab === "genel"
       ? customers.filter((customer) => customer.lastCallDate !== "00/00/0000")
       : activeTab === "kendi"
@@ -385,6 +410,48 @@ function CustomersPageContent() {
       : activeTab === "cevapsizlar"
       ? customers.filter((customer) => customer.lastCallDate === "00/00/0000")
       : customers;
+
+  // Apply sorting based on the current tab's selected sort option.
+  let sortedCustomers = [...filteredCustomers];
+  const currentSort = sortOptions[activeTab];
+  if (currentSort) {
+    switch (currentSort) {
+      case "createdAsc":
+        sortedCustomers.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        break;
+      case "createdDesc":
+        sortedCustomers.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        break;
+      case "nameAsc":
+        sortedCustomers.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "nameDesc":
+        sortedCustomers.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case "lastCallAsc":
+        sortedCustomers.sort(
+          (a, b) =>
+            parseDateStr(a.lastCallDate).getTime() -
+            parseDateStr(b.lastCallDate).getTime()
+        );
+        break;
+      case "lastCallDesc":
+        sortedCustomers.sort(
+          (a, b) =>
+            parseDateStr(b.lastCallDate).getTime() -
+            parseDateStr(a.lastCallDate).getTime()
+        );
+        break;
+      default:
+        break;
+    }
+  }
 
   // Handler for opening the update call date modal
   const handleOpenUpdateCallModal = (customer: any) => {
@@ -407,6 +474,12 @@ function CustomersPageContent() {
     } catch (error) {
       console.error("Son Arama Tarihi güncellenirken hata:", error);
     }
+  };
+
+  // Handler for selecting a sort option from the modal
+  const handleSelectSortOption = (option: string) => {
+    setSortOptions({ ...sortOptions, [activeTab]: option });
+    setSortModalOpen(false);
   };
 
   return (
@@ -448,6 +521,27 @@ function CustomersPageContent() {
               </button>
             </div>
             <div className="flex space-x-2 md:space-x-4">
+              {/* Modified Sıralama button */}
+              <button
+                onClick={() => {
+                  if (currentSort) {
+                    // Undo sorting option and reset
+                    setSortOptions({ ...sortOptions, [activeTab]: "" });
+                  } else {
+                    setSortModalOpen(true);
+                  }
+                }}
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 text-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap flex items-center"
+              >
+                {currentSort ? (
+                  <>
+                    <FiX size={16} className="mr-2" />
+                    <span>{sortOptionNames[currentSort]}</span>
+                  </>
+                ) : (
+                  "Sırala"
+                )}
+              </button>
               <button
                 onClick={() => setReportModalOpen(true)}
                 className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 text-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap"
@@ -499,8 +593,8 @@ function CustomersPageContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {displayedCustomers.length > 0 ? (
-                    displayedCustomers.map((customer) => (
+                  {sortedCustomers.length > 0 ? (
+                    sortedCustomers.map((customer) => (
                       <tr key={customer.id} className="whitespace-nowrap">
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                           <span
@@ -975,6 +1069,84 @@ function CustomersPageContent() {
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                   >
                     Kaydet
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modified Sort Modal */}
+        <AnimatePresence>
+          {sortModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 bg-black"
+                onClick={() => setSortModalOpen(false)}
+              ></motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
+              >
+                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                  Sırala Seçenekleri
+                </h2>
+                <div className="flex flex-col space-y-2">
+                  <button
+                    onClick={() => handleSelectSortOption("createdAsc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Eklenme tarihine göre (eskiden yeniye)
+                  </button>
+                  <button
+                    onClick={() => handleSelectSortOption("createdDesc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Eklenme tarihine göre (yeniden eskiye)
+                  </button>
+                  <button
+                    onClick={() => handleSelectSortOption("nameAsc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Alfabetik
+                  </button>
+                  <button
+                    onClick={() => handleSelectSortOption("nameDesc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Alfabetik (tersden)
+                  </button>
+                  <button
+                    onClick={() => handleSelectSortOption("lastCallAsc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Son aranma tarihine göre (eskiden yeniye)
+                  </button>
+                  <button
+                    onClick={() => handleSelectSortOption("lastCallDesc")}
+                    className="px-4 py-2 bg-transparent border border-blue-500 text-blue-500 rounded-full hover:bg-blue-50 transition-colors text-left"
+                  >
+                    Son aranma tarihine göre (yeniden eskiye)
+                  </button>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setSortModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
+                  >
+                    Kapat
                   </button>
                 </div>
               </motion.div>
