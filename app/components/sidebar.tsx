@@ -204,7 +204,7 @@ const Sidebar = () => {
           </div>
           {expanded && (
             <span className="ml-4 whitespace-nowrap transition-all duration-300">
-              {isDark ? "Light Mode" : "Dark Mode"}
+              {isDark ? "Gündüz Modu" : "Gece Modu"}
             </span>
           )}
         </button>
