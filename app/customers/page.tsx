@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useState, useEffect, useRef } from "react";
 import {
   getFirestore,
@@ -14,12 +13,25 @@ import {
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
 import "../globals.css";
-
 import { useRouter } from "next/navigation";
 // Import Framer Motion components
 import { motion, AnimatePresence } from "framer-motion";
 // Import React Icons (Feather Icons)
 import { FiEdit, FiTrash2, FiUser, FiMail, FiFileText } from "react-icons/fi";
+
+// ***** Replace jsPDF with pdfmake *****
+/* Removed:
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+*/
+// Import pdfmake and its vfs_fonts (using TS ignore if typings are missing)
+// @ts-ignore
+import pdfMake from "pdfmake/build/pdfmake.js";
+// @ts-ignore
+import pdfFonts from "pdfmake/build/vfs_fonts.js";
+
+pdfMake.vfs = pdfFonts.pdfMake?.vfs ?? pdfFonts?.vfs;
+// ****************************************
 
 const firestore = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -47,23 +59,10 @@ function isOwner(customer: any) {
   return user && customer.owner === user.uid;
 }
 
-/** Helper: Force a text to lowercase except the first character */
-function capitalizeSentence(text: string): string {
-  if (!text) return "";
-  const lower = text.toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
-}
-
 export default function CustomersPage() {
   const router = useRouter();
-
-  // (Optional) Load a custom font if you're still using it somewhere
   return (
     <>
-      <Script
-        src="/fonts/Roboto_Condensed-Medium-normal.js"
-        strategy="afterInteractive"
-      />
       <CustomersPageContent />
     </>
   );
@@ -251,7 +250,6 @@ function CustomersPageContent() {
 
   // Open email modal
   const handleEmailIconClick = (customer: any) => {
-    // Checking if user has Google cookie
     if (!document.cookie.includes("google-authenticated=true")) {
       window.location.href = "/api/auth/google";
       return;
@@ -294,31 +292,62 @@ function CustomersPageContent() {
   };
 
   /**
-   * Handle PDF generation via Puppeteer route
+   * Handle PDF generation using pdfmake (replacing jsPDF)
    */
   const handleGenerateReport = async (option: "user" | "all") => {
     setReportLoading(true);
     try {
+      let reportData;
+      let title;
       const currentUser = auth.currentUser;
-      const uid = currentUser?.uid;
-      // If "all", we'll pass 'all'. If "user", we'll pass the current user's UID (or 'all' if not available).
-      const ownerParam = option === "all" ? "all" : uid || "all";
-      // Simply open in a new tab:
-      window.open(`/api/generate-report?owner=${ownerParam}`, "_blank");
-
-      // OR, if you prefer prompting download without a new tab:
-      /*
-      const response = await fetch(`/api/generate-report?owner=${ownerParam}`);
-      if (!response.ok) {
-        throw new Error("PDF oluşturulamadı");
+      if (option === "user") {
+        reportData = customers.filter(
+          (c) => currentUser && c.owner === currentUser.uid
+        );
+        title = currentUser
+          ? `${currentUser.displayName || currentUser.email}'nin Müşteri Raporu`
+          : "Müşteri Raporu";
+      } else {
+        reportData = customers;
+        title = "Tüm Müşteri Raporu";
       }
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = "report.pdf";
-      link.click();
-      */
+      // Build the pdfmake docDefinition with modifications:
+      const docDefinition: any = {
+        pageOrientation: "landscape",
+        content: [
+          { text: title, style: "header" },
+          {
+            table: {
+              widths: ["*", "*", "*", "*", "*"],
+              body: [
+                ["İsim", "E-posta", "Telefon", "Adres", "Açıklama"],
+                ...reportData.map((customer) => [
+                  customer.name || "",
+                  customer.email || "",
+                  customer.phone || "",
+                  customer.address || "",
+                  customer.description || "",
+                ]),
+              ],
+            },
+            layout: {
+              paddingLeft: () => 0,
+              paddingRight: () => 2,
+              paddingTop: () => 2,
+              paddingBottom: () => 2,
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+            },
+            style: "tableCell",
+          },
+        ],
+        styles: {
+          header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
+          tableCell: { fontSize: 8 },
+        },
+      };
+
+      pdfMake.createPdf(docDefinition).open();
     } catch (error) {
       console.error("Rapor oluşturulurken hata:", error);
     } finally {
@@ -327,7 +356,6 @@ function CustomersPageContent() {
     }
   };
 
-  // Filter customers based on active tab
   const displayedCustomers =
     activeTab === "genel"
       ? customers
@@ -338,46 +366,38 @@ function CustomersPageContent() {
 
   return (
     <>
-      {/* If you're not using a custom PDF font client-side, you can remove this Script. */}
-      <Script
-        src="/fonts/Roboto_Condensed-Medium-normal.js"
-        strategy="afterInteractive"
-      />
+      {/* Top section with tabs and action buttons – wrapped in a horizontally scrollable container on mobile */}
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 p-6">
         <div className="max-w-6xl mx-auto">
-          {/* Top tabs */}
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Müşteriler
-          </h1>
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex space-x-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 overflow-x-auto">
+            <div className="flex space-x-2 md:space-x-4">
               <button
                 onClick={() => setActiveTab("genel")}
-                className={`px-4 py-2 rounded-t-lg border-b-2 ${
+                className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "genel"
                     ? "border-blue-500 text-blue-500 font-semibold"
                     : "border-transparent text-gray-500 dark:text-gray-400"
-                }`}
+                } whitespace-nowrap`}
               >
                 Genel
               </button>
               <button
                 onClick={() => setActiveTab("kendi")}
-                className={`px-4 py-2 rounded-t-lg border-b-2 ${
+                className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "kendi"
                     ? "border-blue-500 text-blue-500 font-semibold"
                     : "border-transparent text-gray-500 dark:text-gray-400"
-                }`}
+                } whitespace-nowrap`}
               >
                 Kendi Müşterilerim
               </button>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex space-x-2 md:space-x-4">
               <button
                 onClick={() => setReportModalOpen(true)}
-                className="border border-blue-500 text-blue-500 px-4 py-2 rounded-full bg-transparent hover:bg-blue-50 transition-colors flex items-center space-x-2"
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 text-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap"
               >
-                <FiFileText size={18} />
+                <FiFileText size={18} className="inline mr-1" />
                 <span>Rapor Çıkar</span>
               </button>
               <button
@@ -393,7 +413,7 @@ function CustomersPageContent() {
                   });
                   setModalOpen(true);
                 }}
-                className="bg-blue-500 text-white px-5 py-2 rounded hover:bg-blue-600 transition-colors"
+                className="px-2 py-1 md:px-4 md:py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
                 Müşteri Ekle
               </button>
@@ -401,7 +421,7 @@ function CustomersPageContent() {
           </div>
 
           {/* Customers Table */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg mt-4">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
                 <thead className="bg-gray-100 dark:bg-gray-700">
@@ -494,7 +514,7 @@ function CustomersPageContent() {
           </div>
         </div>
 
-        {/* Customer Add/Edit Modal */}
+        {/* Müşteri Ekle/Düzenle Modal */}
         <AnimatePresence>
           {modalOpen && (
             <motion.div
@@ -636,7 +656,6 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Customer Info Modal */}
         <AnimatePresence>
           {customerInfoModalOpen && selectedCustomerInfo && (
             <motion.div
@@ -717,7 +736,6 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Email Modal */}
         <AnimatePresence>
           {emailModalOpen && selectedEmailCustomer && (
             <motion.div
@@ -818,7 +836,6 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Report Selection Modal */}
         <AnimatePresence>
           {reportModalOpen && (
             <motion.div
