@@ -17,7 +17,14 @@ import { useRouter } from "next/navigation";
 // Import Framer Motion components
 import { motion, AnimatePresence } from "framer-motion";
 // Import React Icons (Feather Icons)
-import { FiEdit, FiTrash2, FiUser, FiMail, FiFileText } from "react-icons/fi";
+import {
+  FiEdit,
+  FiTrash2,
+  FiUser,
+  FiMail,
+  FiFileText,
+  FiPhone,
+} from "react-icons/fi";
 
 // ***** Replace jsPDF with pdfmake *****
 /* Removed:
@@ -89,7 +96,10 @@ function CustomersPageContent() {
     null
   );
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"genel" | "kendi">("genel");
+  // Added "cevapsizlar" option to the activeTab state
+  const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">(
+    "genel"
+  );
   const [customerInfoModalOpen, setCustomerInfoModalOpen] = useState(false);
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState<any>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -100,6 +110,11 @@ function CustomersPageContent() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
+
+  // New state for updating a missed call's date
+  const [updateCallModalOpen, setUpdateCallModalOpen] = useState(false);
+  const [selectedCallCustomer, setSelectedCallCustomer] = useState<any>(null);
+  const [newCallDate, setNewCallDate] = useState("");
 
   // Fetch customers live with caching
   useEffect(() => {
@@ -151,8 +166,9 @@ function CustomersPageContent() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Special handler for last call date input
+  // Special handler for last call date input in the add/edit modal
   const handleLastCallDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // When the user types manually, we override any missed-call state.
     setForm({
       ...form,
       lastCallDate: formatDDMMYYYY(e.target.value),
@@ -356,13 +372,42 @@ function CustomersPageContent() {
     }
   };
 
+  // Update displayedCustomers based on activeTab.
+  // Under the "Genel" tab, filter out those with lastCallDate "00/00/0000".
   const displayedCustomers =
     activeTab === "genel"
-      ? customers
-      : customers.filter((customer) => {
+      ? customers.filter((customer) => customer.lastCallDate !== "00/00/0000")
+      : activeTab === "kendi"
+      ? customers.filter((customer) => {
           const user = auth.currentUser;
           return user && customer.owner === user.uid;
-        });
+        })
+      : activeTab === "cevapsizlar"
+      ? customers.filter((customer) => customer.lastCallDate === "00/00/0000")
+      : customers;
+
+  // Handler for opening the update call date modal
+  const handleOpenUpdateCallModal = (customer: any) => {
+    setSelectedCallCustomer(customer);
+    setNewCallDate(""); // start with empty input
+    setUpdateCallModalOpen(true);
+  };
+
+  // Handler for updating the lastCallDate for a missed call customer
+  const handleUpdateCallDate = async () => {
+    try {
+      if (!selectedCallCustomer) return;
+      const customerRef = doc(firestore, "customers", selectedCallCustomer.id);
+      await updateDoc(customerRef, {
+        lastCallDate: formatDDMMYYYY(newCallDate),
+      });
+      setUpdateCallModalOpen(false);
+      setSelectedCallCustomer(null);
+      setNewCallDate("");
+    } catch (error) {
+      console.error("Son Arama Tarihi güncellenirken hata:", error);
+    }
+  };
 
   return (
     <>
@@ -390,6 +435,16 @@ function CustomersPageContent() {
                 } whitespace-nowrap`}
               >
                 Kendi Müşterilerim
+              </button>
+              <button
+                onClick={() => setActiveTab("cevapsizlar")}
+                className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
+                  activeTab === "cevapsizlar"
+                    ? "border-blue-500 text-blue-500 font-semibold"
+                    : "border-transparent text-gray-500 dark:text-gray-400"
+                } whitespace-nowrap`}
+              >
+                Cevapsızlar
               </button>
             </div>
             <div className="flex space-x-2 md:space-x-4">
@@ -476,6 +531,18 @@ function CustomersPageContent() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
                           <div className="flex items-center justify-center space-x-2">
+                            {/* For missed call customers, show a phone icon for updating the lastCallDate */}
+                            {customer.lastCallDate === "00/00/0000" && (
+                              <button
+                                onClick={() =>
+                                  handleOpenUpdateCallModal(customer)
+                                }
+                                title="Son Arama Tarihi Güncelle"
+                                className="text-blue-500 hover:text-blue-700 transition-colors"
+                              >
+                                <FiPhone size={20} />
+                              </button>
+                            )}
                             {isOwner(customer) && (
                               <>
                                 <button
@@ -604,14 +671,29 @@ function CustomersPageContent() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                       Son Arama Tarihi
                     </label>
-                    <input
-                      type="text"
-                      name="lastCallDate"
-                      placeholder="GG/AA/YYYY"
-                      value={form.lastCallDate}
-                      onChange={handleLastCallDateChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                    />
+                    <div className="mt-1 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        name="lastCallDate"
+                        placeholder="GG/AA/YYYY"
+                        value={form.lastCallDate}
+                        onChange={handleLastCallDateChange}
+                        className="flex-1 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({ ...form, lastCallDate: "00/00/0000" })
+                        }
+                        className={`rounded-full px-3 py-1 border transition-colors ${
+                          form.lastCallDate === "00/00/0000"
+                            ? "bg-green-500 border-green-500 text-white"
+                            : "bg-transparent border-gray-300 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        Cevapsız
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -656,6 +738,7 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
+        {/* Customer Info Modal */}
         <AnimatePresence>
           {customerInfoModalOpen && selectedCustomerInfo && (
             <motion.div
@@ -736,6 +819,7 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
+        {/* Email Modal */}
         <AnimatePresence>
           {emailModalOpen && selectedEmailCustomer && (
             <motion.div
@@ -836,6 +920,69 @@ function CustomersPageContent() {
           )}
         </AnimatePresence>
 
+        {/* Update LastCallDate Modal for Missed Calls */}
+        <AnimatePresence>
+          {updateCallModalOpen && selectedCallCustomer && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 bg-black"
+                onClick={() => setUpdateCallModalOpen(false)}
+              ></motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-sm"
+              >
+                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                  Son Arama Tarihini Güncelle
+                </h2>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Yeni Tarih (GG/AA/YYYY)
+                  </label>
+                  <input
+                    type="text"
+                    value={newCallDate}
+                    onChange={(e) =>
+                      setNewCallDate(formatDDMMYYYY(e.target.value))
+                    }
+                    placeholder="GG/AA/YYYY"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setUpdateCallModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUpdateCallDate}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  >
+                    Kaydet
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Report Modal */}
         <AnimatePresence>
           {reportModalOpen && (
             <motion.div
