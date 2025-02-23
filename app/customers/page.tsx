@@ -124,6 +124,12 @@ function CustomersPageContent() {
   });
   // New state to trigger PDF generation modal flow
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  // New state to hold search queries for each tab
+  const [searchQueries, setSearchQueries] = useState({
+    genel: "",
+    kendi: "",
+    cevapsizlar: "",
+  });
   // Remove reportModalOpen and reportLoading states
 
   // --- Fetch customers ---
@@ -326,7 +332,18 @@ function CustomersPageContent() {
       ? customers.filter((customer) => customer.lastCallDate === "00/00/0000")
       : customers;
 
-  let sortedCustomers = [...filteredCustomers];
+  // Apply search filtering based on the active tab's search query
+  const activeSearchQuery = searchQueries[activeTab].toLowerCase();
+  const filteredCustomersWithSearch = activeSearchQuery
+    ? filteredCustomers.filter(
+        (customer) =>
+          customer.name.toLowerCase().includes(activeSearchQuery) ||
+          customer.email.toLowerCase().includes(activeSearchQuery) ||
+          customer.address.toLowerCase().includes(activeSearchQuery)
+      )
+    : filteredCustomers;
+
+  let sortedCustomers = [...filteredCustomersWithSearch];
   const currentSort = sortOptions[activeTab];
   const sortOptionNames: Record<string, string> = {
     createdAsc: "Eklenme tarihine göre (eskiden yeniye)",
@@ -440,7 +457,26 @@ function CustomersPageContent() {
                 Cevapsızlar
               </button>
             </div>
-            <div className="flex space-x-2 md:space-x-4">
+            <div className="flex space-x-2 md:space-x-4 items-center">
+              {/* New Search Box */}
+              <input
+                type="text"
+                value={searchQueries[activeTab]}
+                onChange={(e) =>
+                  setSearchQueries({
+                    ...searchQueries,
+                    [activeTab]: e.target.value,
+                  })
+                }
+                placeholder={
+                  activeTab === "genel"
+                    ? "Genelde ara"
+                    : activeTab === "kendi"
+                    ? "Kendi müşterilerinde ara"
+                    : "Cevapsızlarda ara"
+                }
+                className="bg-transparent border border-gray-300 rounded-full px-4 py-1 focus:outline-none"
+              />
               <button
                 onClick={() => {
                   if (currentSort) {
