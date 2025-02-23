@@ -124,16 +124,17 @@ export default function PdfGenerator({
         { text: title, style: "header" },
         {
           table: {
-            // Adjusted widths to accommodate the new columns:
-            widths: [30, "*", "*", 50, 70, "*", "*"],
+            // Adjusted widths to accommodate the new column and reduce "İsim" and "Arayan" widths:
+            widths: [30, 70, "*", 50, 70, 50, "*", 70],
             body: [
-              // Header row with the order and "Arayan" columns added:
+              // Updated header row with "İlgilendiği daire" inserted before "Açıklama":
               [
                 "Sıra",
                 "İsim",
                 "E-posta",
                 "Telefon",
                 "Adres",
+                "İlgilendiği daire",
                 "Açıklama",
                 "Arayan",
               ],
@@ -143,6 +144,7 @@ export default function PdfGenerator({
                 customer.email || "",
                 customer.phone || "",
                 customer.address || "",
+                customer.interested || "",
                 customer.description || "",
                 customer.ownerName || "",
               ]),

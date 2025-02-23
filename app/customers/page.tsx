@@ -9,6 +9,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  Timestamp,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
@@ -22,6 +23,7 @@ import {
   FiFileText,
   FiPhone,
   FiX,
+  FiBell,
 } from "react-icons/fi";
 
 // ----- pdfmake setup -----
@@ -37,7 +39,7 @@ import CustomerInfoModal from "./components/CustomerInfoModal";
 import EmailModal from "./components/EmailModal";
 import UpdateCallModal from "./components/UpdateCallModal";
 import SortModal from "./components/SortModal";
-// Removed ReportModal
+import ReminderModal from "./components/ReminderModal";
 import PdfGenerator from "./components/PdfGenerator";
 
 const firestore = getFirestore(firebaseApp);
@@ -97,6 +99,7 @@ function CustomersPageContent() {
     address: "",
     lastCallDate: "",
     description: "",
+    interested: "", // New field for "İlgilendiği daire"
   });
   const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(
     null
@@ -130,7 +133,13 @@ function CustomersPageContent() {
     kendi: "",
     cevapsizlar: "",
   });
-  // Remove reportModalOpen and reportLoading states
+  // --- New Reminder state ---
+  const [liveReminderModalOpen, setLiveReminderModalOpen] = useState(false);
+  const [liveReminderMessage, setLiveReminderMessage] = useState("");
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderCustomer, setReminderCustomer] = useState<any>(null);
+  const [reminderDelay, setReminderDelay] = useState("");
+  const [reminderUnit, setReminderUnit] = useState("minutes");
 
   // --- Fetch customers ---
   useEffect(() => {
@@ -208,6 +217,7 @@ function CustomersPageContent() {
           address: form.address,
           lastCallDate: form.lastCallDate,
           description: form.description,
+          interested: form.interested,
           owner: user.uid,
           ownerName: user.displayName || user.email || "Bilinmiyor",
           createdAt: new Date().toISOString(),
@@ -221,6 +231,7 @@ function CustomersPageContent() {
           address: form.address,
           lastCallDate: form.lastCallDate,
           description: form.description,
+          interested: form.interested,
           updatedAt: new Date().toISOString(),
         });
       }
@@ -231,6 +242,7 @@ function CustomersPageContent() {
         address: "",
         lastCallDate: "",
         description: "",
+        interested: "",
       });
       setSelectedCustomer(null);
       setModalOpen(false);
@@ -251,6 +263,7 @@ function CustomersPageContent() {
       address: customer.address || "",
       lastCallDate: customer.lastCallDate || "",
       description: customer.description || "",
+      interested: customer.interested || "",
     });
     setModalOpen(true);
   };
@@ -315,9 +328,50 @@ function CustomersPageContent() {
     }
   };
 
-  // When the "Rapor Çıkar" button is clicked, open the multi–step PdfGenerator flow directly.
   const handleGenerateReport = () => {
     setPdfModalOpen(true);
+  };
+
+  // New: Open reminder modal for a specific customer
+  const openReminderModal = (customer: any) => {
+    setReminderCustomer(customer);
+    setReminderDelay("");
+    setReminderUnit("minutes");
+    setReminderModalOpen(true);
+  };
+
+  // New: Handle setting a reminder
+  const handleSetReminder = async () => {
+    if (!reminderCustomer || !reminderDelay) return;
+    const delayValue = parseInt(reminderDelay, 10);
+    if (isNaN(delayValue)) return;
+    let delayMs = 0;
+    if (reminderUnit === "minutes") {
+      delayMs = delayValue * 60 * 1000;
+    } else if (reminderUnit === "hours") {
+      delayMs = delayValue * 3600 * 1000;
+    } else if (reminderUnit === "days") {
+      delayMs = delayValue * 24 * 3600 * 1000;
+    }
+    const targetTime = new Date(Date.now() + delayMs);
+    await updateDoc(doc(firestore, "customers", reminderCustomer.id), {
+      reminderTimestamp: Timestamp.fromDate(targetTime),
+    });
+    // Schedule a client-side timer
+    setTimeout(async () => {
+      await addDoc(collection(firestore, "notifications"), {
+        user: auth.currentUser?.uid,
+        customerId: reminderCustomer.id,
+        message: `Hatırlatma: ${reminderCustomer.name}`,
+        createdAt: new Date().toISOString(),
+        unread: true, // Mark new notifications as unread by default
+      });
+
+      // NEW: Trigger the live reminder modal when time expires
+      setLiveReminderMessage(`Hatırlatma: ${reminderCustomer.name}`);
+      setLiveReminderModalOpen(true);
+    }, delayMs);
+    setReminderModalOpen(false);
   };
 
   const filteredCustomers =
@@ -332,7 +386,6 @@ function CustomersPageContent() {
       ? customers.filter((customer) => customer.lastCallDate === "00/00/0000")
       : customers;
 
-  // Apply search filtering based on the active tab's search query
   const activeSearchQuery = searchQueries[activeTab].toLowerCase();
   const filteredCustomersWithSearch = activeSearchQuery
     ? filteredCustomers.filter(
@@ -513,6 +566,7 @@ function CustomersPageContent() {
                     address: "",
                     lastCallDate: "",
                     description: "",
+                    interested: "",
                   });
                   setModalOpen(true);
                 }}
@@ -530,7 +584,10 @@ function CustomersPageContent() {
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
-                      İsim
+                      Ekleyen
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                      Müşteri
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                       E-posta
@@ -541,6 +598,9 @@ function CustomersPageContent() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                       Adres
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                      İlgilendiği daire
+                    </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                       İşlemler
                     </th>
@@ -550,6 +610,9 @@ function CustomersPageContent() {
                   {sortedCustomers.length > 0 ? (
                     sortedCustomers.map((customer) => (
                       <tr key={customer.id} className="whitespace-nowrap">
+                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                          {customer.ownerName}
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                           <span
                             onClick={() => handleCustomerInfo(customer)}
@@ -576,6 +639,9 @@ function CustomersPageContent() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                           {customer.address}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                          {customer.interested}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
                           <div className="flex items-center justify-center space-x-2">
@@ -606,6 +672,27 @@ function CustomersPageContent() {
                                 >
                                   <FiTrash2 size={20} />
                                 </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openReminderModal(customer);
+                                  }}
+                                  title="Hatırlatma Ayarla"
+                                  className="hover:text-yellow-500 transition-colors"
+                                >
+                                  <FiBell
+                                    size={20}
+                                    className={
+                                      customer.reminderTimestamp &&
+                                      new Date(
+                                        customer.reminderTimestamp.seconds *
+                                          1000
+                                      ) > new Date()
+                                        ? "text-yellow-500"
+                                        : "text-gray-500"
+                                    }
+                                  />
+                                </button>
                               </>
                             )}
                           </div>
@@ -615,7 +702,7 @@ function CustomersPageContent() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={7}
                         className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
                       >
                         Müşteri bulunamadı.
@@ -679,7 +766,6 @@ function CustomersPageContent() {
           onSelectSortOption={handleSelectSortOption}
         />
 
-        {/* Directly show the PdfGenerator flow modal when pdfModalOpen is true */}
         {pdfModalOpen && (
           <PdfGenerator
             customers={customers}
@@ -690,6 +776,91 @@ function CustomersPageContent() {
             onClose={() => {
               setPdfModalOpen(false);
             }}
+          />
+        )}
+
+        {/* Reminder Modal */}
+        {reminderModalOpen && (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 bg-black"
+                onClick={() => setReminderModalOpen(false)}
+              ></motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
+              >
+                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                  {reminderCustomer?.name} için Hatırlatma Ayarla
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Süre
+                    </label>
+                    <input
+                      type="number"
+                      value={reminderDelay}
+                      onChange={(e) => setReminderDelay(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      placeholder="Süre girin"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Birim
+                    </label>
+                    <select
+                      value={reminderUnit}
+                      onChange={(e) => setReminderUnit(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    >
+                      <option value="minutes">Dakika</option>
+                      <option value="hours">Saat</option>
+                      <option value="days">Gün</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => setReminderModalOpen(false)}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
+                    >
+                      İptal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSetReminder}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Ayarla
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* NEW: Live Reminder Modal */}
+        {liveReminderModalOpen && (
+          <ReminderModal
+            isOpen={liveReminderModalOpen}
+            onClose={() => setLiveReminderModalOpen(false)}
+            message={liveReminderMessage}
           />
         )}
       </div>

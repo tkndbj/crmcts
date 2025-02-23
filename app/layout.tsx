@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import "./globals.css";
 
-// Import a new client wrapper (will create it below)
+// Import the AuthLayout and our new NotificationsBell component
 import AuthLayout from "./AuthLayout";
+import NotificationsBell from "./components/NotificationsBell";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -27,7 +28,10 @@ export default function RootLayout({
       </head>
       <body className={`${figtree.className} antialiased overflow-x-hidden`}>
         {/* We wrap children in a separate client component */}
-        <AuthLayout>{children}</AuthLayout>
+        <AuthLayout>
+          {children}
+          <NotificationsBell />
+        </AuthLayout>
       </body>
     </html>
   );
