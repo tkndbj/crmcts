@@ -124,15 +124,27 @@ export default function PdfGenerator({
         { text: title, style: "header" },
         {
           table: {
-            widths: ["*", "*", "*", "*", "*"],
+            // Adjusted widths to accommodate the new columns:
+            widths: [30, "*", "*", 50, 70, "*", "*"],
             body: [
-              ["İsim", "E-posta", "Telefon", "Adres", "Açıklama"],
-              ...reportData.map((customer) => [
+              // Header row with the order and "Arayan" columns added:
+              [
+                "Sıra",
+                "İsim",
+                "E-posta",
+                "Telefon",
+                "Adres",
+                "Açıklama",
+                "Arayan",
+              ],
+              ...reportData.map((customer, index) => [
+                index + 1,
                 customer.name || "",
                 customer.email || "",
                 customer.phone || "",
                 customer.address || "",
                 customer.description || "",
+                customer.ownerName || "",
               ]),
             ],
           },
