@@ -56,17 +56,25 @@ export default function PdfGenerator({
   // Steps:
   // 1: Select user option ("user" or "all")
   // 2: Select call option ("cevapsizlar", "cevaplılar", "hepsi")
-  // 3: Ask if sorting is desired ("evet" or "hayır")
-  // 4 (if yes): Select sorting option from list
+  // 3: (Conditional) Select durum filter ("olumlu", "olumsuz", "orta", "hepsi")
+  //    – shown if callOption !== "cevapsizlar" (i.e. if "cevaplılar" or "hepsi" is chosen)
+  // 4: Ask if sorting is desired ("evet" or "hayır")
+  // 5 (if yes): Select sorting option from list
   const [step, setStep] = useState(1);
   const [userOption, setUserOption] = useState<"user" | "all">("user");
-  const [callOption, setCallOption] = useState<"cevapsizlar" | "cevaplılar" | "hepsi">("hepsi");
+  const [callOption, setCallOption] = useState<
+    "cevapsizlar" | "cevaplılar" | "hepsi"
+  >("hepsi");
+  const [durumOption, setDurumOption] = useState<
+    "olumlu" | "olumsuz" | "orta" | "hepsi"
+  >("hepsi");
   const [sortingWanted, setSortingWanted] = useState<boolean | null>(null);
   const [selectedSortOption, setSelectedSortOption] = useState<string>("");
 
-  // For the yes/no button styles:
+  // For the yes/no button styles (used in step 4):
   const baseBtnClasses = "rounded-full border px-4 py-2 transition-colors";
-  const unselectedBtnClasses = "bg-transparent border-gray-400 text-gray-700";
+  const unselectedBtnClasses =
+    "bg-transparent border-gray-400 text-gray-700 dark:text-white";
   const selectedBtnClasses = "bg-green-500 border-green-500 text-white";
 
   // Navigation handlers
@@ -86,7 +94,13 @@ export default function PdfGenerator({
     } else if (callOption === "cevaplılar") {
       reportData = reportData.filter((c) => c.missedCall === false);
     }
-    // Step 4: Sort if desired
+    // Step 3: Filter by durum option (applied only if callOption !== "cevapsizlar")
+    if (callOption !== "cevapsizlar" && durumOption !== "hepsi") {
+      reportData = reportData.filter(
+        (c) => c.durum && c.durum.toLowerCase() === durumOption
+      );
+    }
+    // Step 5: Sort if desired
     if (sortingWanted && selectedSortOption) {
       switch (selectedSortOption) {
         case "createdAsc":
@@ -137,19 +151,8 @@ export default function PdfGenerator({
         { text: title, style: "header" },
         {
           table: {
-            // Adjust widths:
-            // Column 0: Sıra (30)
-            // Column 1: İsim (70) with colored bullet
-            // Column 2: E-posta (80) - reduced width
-            // Column 3: Telefon (50)
-            // Column 4: Adres (70)
-            // Column 5: İlgilendiği daire (50)
-            // Column 6: Kanal (50)
-            // Column 7: Açıklama (*) flexible
-            // Column 8: Arayan (70)
             widths: [30, 70, 80, 50, 70, 50, 50, "*", 70],
             body: [
-              // Updated header row with new "Kanal" column inserted before "Açıklama":
               [
                 "Sıra",
                 "İsim",
@@ -164,11 +167,12 @@ export default function PdfGenerator({
               ...reportData.map((customer, index) => [
                 index + 1,
                 {
-                  // Use a colored bullet instead of canvas ellipse
                   columns: [
                     {
                       text: customer.durum ? "●" : "",
-                      color: customer.durum ? getStatusColor(customer.durum) : undefined,
+                      color: customer.durum
+                        ? getStatusColor(customer.durum)
+                        : undefined,
                       fontSize: 10,
                       width: 10,
                     },
@@ -220,7 +224,9 @@ export default function PdfGenerator({
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold">1) Müşteri Seçeneğini Belirleyin</h2>
+            <h2 className="text-xl font-bold dark:text-white">
+              1) Müşteri Seçeneğini Belirleyin
+            </h2>
             <div className="flex flex-col space-y-4">
               <button
                 onClick={() => setUserOption("user")}
@@ -257,10 +263,12 @@ export default function PdfGenerator({
         return (
           <div className="space-y-6">
             <div className="flex items-center space-x-2">
-              <button onClick={goBack} className="text-2xl">
+              <button onClick={goBack} className="text-2xl dark:text-white">
                 <FiArrowLeft />
               </button>
-              <h2 className="text-xl font-bold">2) Müşteri Alt Kümesini Seçin</h2>
+              <h2 className="text-xl font-bold dark:text-white">
+                2) Müşteri Alt Kümesini Seçin
+              </h2>
             </div>
             <div className="flex flex-col space-y-4">
               <button
@@ -296,7 +304,14 @@ export default function PdfGenerator({
             </div>
             <div className="flex justify-end">
               <button
-                onClick={goNext}
+                onClick={() => {
+                  // Show step 3 (durum selection) for both "cevaplılar" and "hepsi"
+                  if (callOption === "cevapsizlar") {
+                    setStep(4);
+                  } else {
+                    setStep(3);
+                  }
+                }}
                 className="px-4 py-2 bg-blue-500 text-white rounded"
               >
                 Devam &gt;
@@ -308,11 +323,85 @@ export default function PdfGenerator({
         return (
           <div className="space-y-6">
             <div className="flex items-center space-x-2">
-              <button onClick={goBack} className="text-2xl">
+              <button onClick={goBack} className="text-2xl dark:text-white">
                 <FiArrowLeft />
               </button>
-              <h2 className="text-xl font-bold">
-                3) Sıralama Yapmak İstiyor musunuz?
+              <h2 className="text-xl font-bold dark:text-white">
+                3) Durum seçin
+              </h2>
+            </div>
+            <div className="flex flex-col space-y-4">
+              <button
+                onClick={() => setDurumOption("olumlu")}
+                className={`px-4 py-2 border rounded ${
+                  durumOption === "olumlu"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Olumlular
+              </button>
+              <button
+                onClick={() => setDurumOption("olumsuz")}
+                className={`px-4 py-2 border rounded ${
+                  durumOption === "olumsuz"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Olumsuzlar
+              </button>
+              <button
+                onClick={() => setDurumOption("orta")}
+                className={`px-4 py-2 border rounded ${
+                  durumOption === "orta"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Ortalar
+              </button>
+              <button
+                onClick={() => setDurumOption("hepsi")}
+                className={`px-4 py-2 border rounded ${
+                  durumOption === "hepsi"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Hepsi
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={goNext}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                Devam &gt;
+              </button>
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  // If the user had selected "cevapsizlar", go back to step 2;
+                  // otherwise, return to step 3 (durum selection)
+                  if (callOption === "cevapsizlar") {
+                    setStep(2);
+                  } else {
+                    setStep(3);
+                  }
+                }}
+                className="text-2xl dark:text-white"
+              >
+                <FiArrowLeft />
+              </button>
+              <h2 className="text-xl font-bold dark:text-white">
+                4) Sıralama Yapmak İstiyor musunuz?
               </h2>
             </div>
             <div className="flex flex-col space-y-4">
@@ -347,14 +436,16 @@ export default function PdfGenerator({
             </div>
           </div>
         );
-      case 4:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="flex items-center space-x-2">
-              <button onClick={goBack} className="text-2xl">
+              <button onClick={goBack} className="text-2xl dark:text-white">
                 <FiArrowLeft />
               </button>
-              <h2 className="text-xl font-bold">4) Sıralama Seçeneğini Belirleyin</h2>
+              <h2 className="text-xl font-bold dark:text-white">
+                5) Sıralama Seçeneğini Belirleyin
+              </h2>
             </div>
             <div className="flex flex-col space-y-4">
               {sortOptionsData.map((opt) => (
@@ -412,7 +503,7 @@ export default function PdfGenerator({
           {/* Close Icon in top-right */}
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 text-gray-700 hover:text-gray-900"
+            className="absolute top-2 right-2 text-gray-700 dark:text-white hover:text-gray-900 dark:hover:text-white"
           >
             <FiX size={20} />
           </button>

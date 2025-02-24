@@ -26,6 +26,7 @@ import {
   FiX,
   FiBell,
   FiCalendar,
+  FiPieChart,
 } from "react-icons/fi";
 
 // ----- pdfmake setup -----
@@ -741,6 +742,14 @@ function CustomersPageContent() {
                 }
                 className="bg-transparent border border-gray-300 rounded-full px-4 py-1 focus:outline-none text-black dark:text-white"
               />
+              {/* New Analytics Button */}
+              <button
+                onClick={() => router.push("/analytics")}
+                title="Analytics"
+                className="p-2 md:p-3 border border-blue-500 rounded-full bg-transparent dark:text-white hover:bg-blue-500 hover:text-white transition-colors"
+              >
+                <FiPieChart size={20} />
+              </button>
               <button
                 onClick={() => {
                   if (currentSort) {
