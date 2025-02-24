@@ -15,6 +15,7 @@ interface CustomerFormModalProps {
     lastCallDate: string;
     description: string;
     interested: string; // New field
+    channel: string; // New Field: Kanal
   };
   setForm: React.Dispatch<
     React.SetStateAction<{
@@ -25,6 +26,7 @@ interface CustomerFormModalProps {
       lastCallDate: string;
       description: string;
       interested: string; // New field
+      channel: string; // New Field: Kanal
     }>
   >;
   error: string | null;
@@ -171,6 +173,39 @@ export default function CustomerFormModal({
                   >
                     Cevapsız
                   </button>
+                </div>
+              </div>
+              {/* New Field: Kanal */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Kanal
+                </label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {[
+                    "Instagram",
+                    "Facebook",
+                    "TikTok",
+                    "Youtube",
+                    "Website iletişim form",
+                    "Whatsapp",
+                    "Telefon",
+                    "Lead",
+                  ].map((option) => (
+                    <button
+                      type="button"
+                      key={option}
+                      onClick={() =>
+                        setForm({ ...form, channel: option })
+                      }
+                      className={`px-4 py-2 border rounded-full transition-colors ${
+                        form.channel === option
+                          ? "bg-[#00A86B] text-white"
+                          : "bg-transparent text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div>

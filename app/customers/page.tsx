@@ -10,6 +10,7 @@ import {
   deleteDoc,
   doc,
   Timestamp,
+  deleteField,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
@@ -24,6 +25,7 @@ import {
   FiPhone,
   FiX,
   FiBell,
+  FiCalendar,
 } from "react-icons/fi";
 
 // ----- pdfmake setup -----
@@ -87,6 +89,7 @@ function CustomersPageContent() {
   const router = useRouter();
 
   // --- State declarations ---
+  const [showCalendar, setShowCalendar] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -99,15 +102,12 @@ function CustomersPageContent() {
     address: "",
     lastCallDate: "",
     description: "",
-    interested: "", // New field for "İlgilendiği daire"
+    interested: "",
+    channel: "",
   });
-  const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(
-    null
-  );
+  const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">(
-    "genel"
-  );
+  const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">("genel");
   const [customerInfoModalOpen, setCustomerInfoModalOpen] = useState(false);
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState<any>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -140,6 +140,23 @@ function CustomersPageContent() {
   const [reminderCustomer, setReminderCustomer] = useState<any>(null);
   const [reminderDelay, setReminderDelay] = useState("");
   const [reminderUnit, setReminderUnit] = useState("minutes");
+  // NEW: New state for reminder "Açıklama"
+  const [reminderAciklama, setReminderAciklama] = useState("");
+  // NEW: New state for calendar-based date/time when "days" is selected
+  const [reminderDateTime, setReminderDateTime] = useState("");
+  // NEW: Mode for the reminder modal (new vs edit)
+  const [reminderModalMode, setReminderModalMode] = useState<"new" | "edit">("new");
+
+  // NEW: State for owner filter dropdown in the table header
+  const [ownerFilter, setOwnerFilter] = useState("Genel");
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+
+  // NEW: State for calendar filter
+  const [filterDate, setFilterDate] = useState("");
+  // Removed showCalendar state since it's no longer needed
+
+  // NEW: Ref for the hidden calendar input
+  const calendarInputRef = useRef<HTMLInputElement>(null);
 
   // --- Fetch customers ---
   useEffect(() => {
@@ -218,6 +235,7 @@ function CustomersPageContent() {
           lastCallDate: form.lastCallDate,
           description: form.description,
           interested: form.interested,
+          channel: form.channel,
           owner: user.uid,
           ownerName: user.displayName || user.email || "Bilinmiyor",
           createdAt: new Date().toISOString(),
@@ -232,6 +250,7 @@ function CustomersPageContent() {
           lastCallDate: form.lastCallDate,
           description: form.description,
           interested: form.interested,
+          channel: form.channel,
           updatedAt: new Date().toISOString(),
         });
       }
@@ -243,6 +262,7 @@ function CustomersPageContent() {
         lastCallDate: "",
         description: "",
         interested: "",
+        channel: "",
       });
       setSelectedCustomer(null);
       setModalOpen(false);
@@ -264,6 +284,7 @@ function CustomersPageContent() {
       lastCallDate: customer.lastCallDate || "",
       description: customer.description || "",
       interested: customer.interested || "",
+      channel: customer.channel || "",
     });
     setModalOpen(true);
   };
@@ -332,46 +353,89 @@ function CustomersPageContent() {
     setPdfModalOpen(true);
   };
 
-  // New: Open reminder modal for a specific customer
-  const openReminderModal = (customer: any) => {
+  // New: Open reminder modal for a specific customer in either "new" or "edit" mode.
+  const openReminderModal = (customer: any, mode: "new" | "edit" = "new") => {
     setReminderCustomer(customer);
-    setReminderDelay("");
-    setReminderUnit("minutes");
+    setReminderModalMode(mode);
+    if (mode === "new") {
+      setReminderDelay("");
+      setReminderUnit("minutes");
+      setReminderAciklama("");
+      setReminderDateTime("");
+    } else if (mode === "edit") {
+      if (customer.reminderTimestamp) {
+        const reminderDate = new Date(customer.reminderTimestamp.seconds * 1000);
+        // Format for datetime-local input: "YYYY-MM-DDTHH:MM"
+        const dtLocal = reminderDate.toISOString().substring(0, 16);
+        setReminderUnit("days");
+        setReminderDateTime(dtLocal);
+      }
+      setReminderAciklama(customer.reminderDescription || "");
+      setReminderDelay("");
+    }
     setReminderModalOpen(true);
   };
 
-  // New: Handle setting a reminder
+  // New: Handle setting/updating a reminder (works for both new and edit modes)
   const handleSetReminder = async () => {
-    if (!reminderCustomer || !reminderDelay) return;
-    const delayValue = parseInt(reminderDelay, 10);
-    if (isNaN(delayValue)) return;
-    let delayMs = 0;
-    if (reminderUnit === "minutes") {
-      delayMs = delayValue * 60 * 1000;
-    } else if (reminderUnit === "hours") {
-      delayMs = delayValue * 3600 * 1000;
-    } else if (reminderUnit === "days") {
-      delayMs = delayValue * 24 * 3600 * 1000;
+    if (!reminderCustomer) return;
+    let targetTime: Date;
+    if (reminderUnit === "days") {
+      if (!reminderDateTime) return;
+      targetTime = new Date(reminderDateTime);
+      const delayMs = targetTime.getTime() - Date.now();
+      if (delayMs <= 0) return; // Optionally, alert the user here.
+    } else {
+      const delayValue = parseInt(reminderDelay, 10);
+      if (isNaN(delayValue)) return;
+      if (reminderUnit === "minutes") {
+        targetTime = new Date(Date.now() + delayValue * 60 * 1000);
+      } else if (reminderUnit === "hours") {
+        targetTime = new Date(Date.now() + delayValue * 3600 * 1000);
+      } else {
+        return;
+      }
     }
-    const targetTime = new Date(Date.now() + delayMs);
     await updateDoc(doc(firestore, "customers", reminderCustomer.id), {
       reminderTimestamp: Timestamp.fromDate(targetTime),
+      reminderDescription: reminderAciklama,
     });
-    // Schedule a client-side timer
+    const delayMs = targetTime.getTime() - Date.now();
     setTimeout(async () => {
       await addDoc(collection(firestore, "notifications"), {
         user: auth.currentUser?.uid,
         customerId: reminderCustomer.id,
-        message: `Hatırlatma: ${reminderCustomer.name}`,
+        message: `Hatırlatma: ${reminderCustomer.name}${
+          reminderAciklama ? " - Açıklama: " + reminderAciklama : ""
+        }`,
         createdAt: new Date().toISOString(),
-        unread: true, // Mark new notifications as unread by default
+        unread: true,
       });
-
-      // NEW: Trigger the live reminder modal when time expires
-      setLiveReminderMessage(`Hatırlatma: ${reminderCustomer.name}`);
+      setLiveReminderMessage(
+        `Hatırlatma: ${reminderCustomer.name}${
+          reminderAciklama ? " - Açıklama: " + reminderAciklama : ""
+        }`
+      );
       setLiveReminderModalOpen(true);
     }, delayMs);
     setReminderModalOpen(false);
+    setReminderAciklama("");
+    setReminderDelay("");
+    setReminderDateTime("");
+  };
+
+  // New: Handle deletion of an existing reminder
+  const handleDeleteReminder = async () => {
+    if (!reminderCustomer) return;
+    try {
+      await updateDoc(doc(firestore, "customers", reminderCustomer.id), {
+        reminderTimestamp: deleteField(),
+        reminderDescription: deleteField(),
+      });
+      setReminderModalOpen(false);
+    } catch (error) {
+      console.error("Hatırlatma silinirken hata:", error);
+    }
   };
 
   const filteredCustomers =
@@ -392,7 +456,8 @@ function CustomersPageContent() {
         (customer) =>
           customer.name.toLowerCase().includes(activeSearchQuery) ||
           customer.email.toLowerCase().includes(activeSearchQuery) ||
-          customer.address.toLowerCase().includes(activeSearchQuery)
+          customer.address.toLowerCase().includes(activeSearchQuery) ||
+          customer.phone.toLowerCase().includes(activeSearchQuery)
       )
     : filteredCustomers;
 
@@ -430,20 +495,35 @@ function CustomersPageContent() {
       case "lastCallAsc":
         sortedCustomers.sort(
           (a, b) =>
-            parseDateStr(a.lastCallDate).getTime() -
-            parseDateStr(b.lastCallDate).getTime()
+            parseDateStr(a.lastCallDate).getTime() - parseDateStr(b.lastCallDate).getTime()
         );
         break;
       case "lastCallDesc":
         sortedCustomers.sort(
           (a, b) =>
-            parseDateStr(b.lastCallDate).getTime() -
-            parseDateStr(a.lastCallDate).getTime()
+            parseDateStr(b.lastCallDate).getTime() - parseDateStr(a.lastCallDate).getTime()
         );
         break;
       default:
         break;
     }
+  }
+
+  // Apply owner filter if not set to "Genel"
+  if (ownerFilter !== "Genel") {
+    sortedCustomers = sortedCustomers.filter(
+      (customer) => customer.ownerName === ownerFilter
+    );
+  }
+
+  // Apply createdAt date filter if set
+  if (filterDate) {
+    sortedCustomers = sortedCustomers.filter((customer) => {
+      const createdDate = new Date(customer.createdAt)
+        .toISOString()
+        .substring(0, 10);
+      return createdDate === filterDate;
+    });
   }
 
   const handleOpenUpdateCallModal = (customer: any) => {
@@ -471,6 +551,10 @@ function CustomersPageContent() {
     setSortOptions({ ...sortOptions, [activeTab]: option });
     setSortModalOpen(false);
   };
+
+  // Compute unique owner names for dropdown (including "Genel")
+  const uniqueOwners = Array.from(new Set(customers.map((c) => c.ownerName)));
+  const ownersList = ["Genel", ...uniqueOwners.filter((o) => o !== "Genel")];
 
   return (
     <>
@@ -511,6 +595,58 @@ function CustomersPageContent() {
               </button>
             </div>
             <div className="flex space-x-2 md:space-x-4 items-center">
+              {/* New: Calendar icon & date filter */}
+              <div className="relative flex items-center">
+              <button
+  onClick={() => {
+    if (calendarInputRef.current) {
+      if (calendarInputRef.current.showPicker) {
+        calendarInputRef.current.showPicker();
+      } else {
+        calendarInputRef.current.click();
+      }
+    }
+  }}
+  title="Tarihe Göre Filtrele"
+  className="p-2"
+>
+  <FiCalendar
+    size={20}
+    className="text-gray-500 hover:text-blue-500 transition-colors"
+  />
+</button>
+<input
+  type="date"
+  ref={calendarInputRef}
+  value={filterDate}
+  onChange={(e) => setFilterDate(e.target.value)}
+  style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+/>
+
+  {showCalendar && (
+    <div className="absolute top-full left-0 mt-2 z-50">
+      <input
+        type="date"
+        value={filterDate}
+        onChange={(e) => {
+          setFilterDate(e.target.value);
+          setShowCalendar(false);
+        }}
+        className="border rounded p-1 bg-white dark:bg-gray-700 dark:text-gray-100"
+      />
+    </div>
+  )}
+  {filterDate && (
+    <button
+      onClick={() => setFilterDate("")}
+      className="ml-2 text-red-500"
+      title="Filtreyi Temizle"
+    >
+      <FiX size={16} />
+    </button>
+  )}
+</div>
+
               {/* New Search Box */}
               <input
                 type="text"
@@ -567,6 +703,7 @@ function CustomersPageContent() {
                     lastCallDate: "",
                     description: "",
                     interested: "",
+                    channel: "",
                   });
                   setModalOpen(true);
                 }}
@@ -583,8 +720,32 @@ function CustomersPageContent() {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider cursor-pointer relative"
+                      onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
+                    >
                       Ekleyen
+                      {showOwnerDropdown && (
+                        <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
+                          {ownersList.map((owner) => (
+                            <div
+                              key={owner}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOwnerFilter(owner);
+                                setShowOwnerDropdown(false);
+                              }}
+                              className={`px-4 py-2 cursor-pointer ${
+                                owner === ownerFilter
+                                  ? "bg-[#00A86B] text-white"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-600"
+                              }`}
+                            >
+                              {owner}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                       Müşteri
@@ -647,9 +808,7 @@ function CustomersPageContent() {
                           <div className="flex items-center justify-center space-x-2">
                             {customer.lastCallDate === "00/00/0000" && (
                               <button
-                                onClick={() =>
-                                  handleOpenUpdateCallModal(customer)
-                                }
+                                onClick={() => handleOpenUpdateCallModal(customer)}
                                 title="Son Arama Tarihi Güncelle"
                                 className="text-blue-500 hover:text-blue-700 transition-colors"
                               >
@@ -675,7 +834,16 @@ function CustomersPageContent() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    openReminderModal(customer);
+                                    if (
+                                      customer.reminderTimestamp &&
+                                      new Date(
+                                        customer.reminderTimestamp.seconds * 1000
+                                      ) > new Date()
+                                    ) {
+                                      openReminderModal(customer, "edit");
+                                    } else {
+                                      openReminderModal(customer, "new");
+                                    }
                                   }}
                                   title="Hatırlatma Ayarla"
                                   className="hover:text-yellow-500 transition-colors"
@@ -685,8 +853,7 @@ function CustomersPageContent() {
                                     className={
                                       customer.reminderTimestamp &&
                                       new Date(
-                                        customer.reminderTimestamp.seconds *
-                                          1000
+                                        customer.reminderTimestamp.seconds * 1000
                                       ) > new Date()
                                         ? "text-yellow-500"
                                         : "text-gray-500"
@@ -779,7 +946,7 @@ function CustomersPageContent() {
           />
         )}
 
-        {/* Reminder Modal */}
+        {/* Reminder Modal for setting/updating a reminder */}
         {reminderModalOpen && (
           <AnimatePresence>
             <motion.div
@@ -804,21 +971,37 @@ function CustomersPageContent() {
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
               >
                 <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                  {reminderCustomer?.name} için Hatırlatma Ayarla
+                  {reminderModalMode === "new"
+                    ? `${reminderCustomer?.name} için Hatırlatma Ayarla`
+                    : `${reminderCustomer?.name} için Ayarlanmış Hatırlatmayı Düzenle`}
                 </h2>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                      Süre
-                    </label>
-                    <input
-                      type="number"
-                      value={reminderDelay}
-                      onChange={(e) => setReminderDelay(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                      placeholder="Süre girin"
-                    />
-                  </div>
+                  {reminderUnit === "days" ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Tarih ve Saat
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={reminderDateTime}
+                        onChange={(e) => setReminderDateTime(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Süre
+                      </label>
+                      <input
+                        type="number"
+                        value={reminderDelay}
+                        onChange={(e) => setReminderDelay(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="Süre girin"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                       Birim
@@ -833,6 +1016,18 @@ function CustomersPageContent() {
                       <option value="days">Gün</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Açıklama
+                    </label>
+                    <input
+                      type="text"
+                      value={reminderAciklama}
+                      onChange={(e) => setReminderAciklama(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      placeholder="Açıklama girin"
+                    />
+                  </div>
                   <div className="flex justify-end space-x-4">
                     <button
                       type="button"
@@ -841,13 +1036,33 @@ function CustomersPageContent() {
                     >
                       İptal
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleSetReminder}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                    >
-                      Ayarla
-                    </button>
+                    {reminderModalMode === "edit" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleSetReminder}
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                          Güncelle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDeleteReminder}
+                          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                          Sil
+                        </button>
+                      </>
+                    )}
+                    {reminderModalMode === "new" && (
+                      <button
+                        type="button"
+                        onClick={handleSetReminder}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                      >
+                        Ayarla
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -855,7 +1070,7 @@ function CustomersPageContent() {
           </AnimatePresence>
         )}
 
-        {/* NEW: Live Reminder Modal */}
+        {/* Live Reminder Modal */}
         {liveReminderModalOpen && (
           <ReminderModal
             isOpen={liveReminderModalOpen}
