@@ -54,32 +54,70 @@ export default function CustomerInfoModal({
                 Müşteri Bilgileri
               </h3>
             </div>
-            <p className="text-gray-700 dark:text-gray-300">
-              <strong>İsim:</strong> {customer.name}
-            </p>
-            <p className="text-gray-700 dark:text-gray-300">
-              <strong>E-posta:</strong> {customer.email}
-            </p>
-            <p className="text-gray-700 dark:text-gray-300">
-              <strong>Telefon:</strong> {customer.phone}
-            </p>
-            <p className="text-gray-700 dark:text-gray-300">
-              <strong>Adres:</strong> {customer.address}
-            </p>
-            {customer.lastCallDate && (
-              <p className="text-gray-700 dark:text-gray-300">
-                <strong>Son Arama Tarihi:</strong> {customer.lastCallDate}
-              </p>
+            {customer.missedCall ? (
+              <>
+                <p className="text-gray-700 dark:text-gray-300">
+                  <strong>Telefon:</strong> {customer.phone}
+                </p>
+                {customer.lastCallDate && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Son Arama Tarihi:</strong> {customer.lastCallDate}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                {customer.name && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>İsim:</strong> {customer.name}
+                  </p>
+                )}
+                {customer.email && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>E-posta:</strong> {customer.email}
+                  </p>
+                )}
+                {customer.phone && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Telefon:</strong> {customer.phone}
+                  </p>
+                )}
+                {customer.address && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Adres:</strong> {customer.address}
+                  </p>
+                )}
+                {customer.lastCallDate && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Son Arama Tarihi:</strong> {customer.lastCallDate}
+                  </p>
+                )}
+                {customer.description && (
+                  <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-gray-300 mt-2">
+                     {customer.description}
+                  </div>
+                )}
+                {customer.channel && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Kanal:</strong> {customer.channel}
+                  </p>
+                )}
+                {customer.durum && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Durum:</strong> {customer.durum}
+                  </p>
+                )}
+                {customer.interested && (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>İlgilendiği Daire:</strong> {customer.interested}
+                  </p>
+                )}
+                <p className="text-gray-700 dark:text-gray-300 mt-4">
+                  <strong>Ekleyen:</strong>{" "}
+                  {customer.ownerName ? customer.ownerName : "Bilinmiyor"}
+                </p>
+              </>
             )}
-            {customer.description && (
-              <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-gray-300 mt-2">
-                {customer.description}
-              </div>
-            )}
-            <p className="text-gray-700 dark:text-gray-300 mt-4">
-              <strong>Ekleyen:</strong>{" "}
-              {customer.ownerName ? customer.ownerName : "Bilinmiyor"}
-            </p>
             <div className="flex justify-end mt-6">
               <button
                 onClick={onClose}

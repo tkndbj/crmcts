@@ -1,4 +1,7 @@
 // lib/firebaseAdmin.ts
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import * as admin from "firebase-admin";
 
 if (!admin.apps.length) {

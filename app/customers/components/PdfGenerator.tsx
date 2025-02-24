@@ -69,9 +69,9 @@ export default function PdfGenerator({
     }
     // Step 2: Filter by call option
     if (callOption === "cevapsizlar") {
-      reportData = reportData.filter((c) => c.lastCallDate === "00/00/0000");
+      reportData = reportData.filter((c) => c.missedCall === true);
     } else if (callOption === "cevaplılar") {
-      reportData = reportData.filter((c) => c.lastCallDate !== "00/00/0000");
+      reportData = reportData.filter((c) => c.missedCall === false);
     }
     // Step 4: Sort if desired
     if (sortingWanted && selectedSortOption) {

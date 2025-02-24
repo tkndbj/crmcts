@@ -16,6 +16,9 @@ interface CustomerFormModalProps {
     description: string;
     interested: string; // New field
     channel: string; // New Field: Kanal
+    durum: string; // New Field: Durum
+    callStatus: "cevapAlındı" | "cevapsiz"; // NEW: Mode selection
+    missedCall: boolean; // NEW: Based on mode
   };
   setForm: React.Dispatch<
     React.SetStateAction<{
@@ -27,6 +30,9 @@ interface CustomerFormModalProps {
       description: string;
       interested: string; // New field
       channel: string; // New Field: Kanal
+      durum: string; // New Field: Durum
+      callStatus: "cevapAlındı" | "cevapsiz"; // NEW: Mode selection
+      missedCall: boolean; // NEW: Based on mode
     }>
   >;
   error: string | null;
@@ -82,32 +88,66 @@ export default function CustomerFormModal({
                 {error}
               </div>
             )}
+            {/* Top Mode Selection Buttons */}
+            <div className="flex space-x-4 mb-4">
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({ ...form, callStatus: "cevapAlındı", missedCall: false })
+                }
+                className={`px-4 py-2 border rounded-full transition-colors ${
+                  form.callStatus === "cevapAlındı"
+                    ? "bg-[#00A86B] text-white"
+                    : "bg-transparent text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                Cevap Alındı
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({ ...form, callStatus: "cevapsiz", missedCall: true })
+                }
+                className={`px-4 py-2 border rounded-full transition-colors ${
+                  form.callStatus === "cevapsiz"
+                    ? "bg-[#00A86B] text-white"
+                    : "bg-transparent text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                Cevapsız
+              </button>
+            </div>
             <form onSubmit={onSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  İsim
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  E-posta
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
+              {/* Render fields conditionally based on callStatus */}
+              {form.callStatus === "cevapAlındı" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      İsim
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      E-posta
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Telefon
@@ -121,105 +161,122 @@ export default function CustomerFormModal({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
+              {form.callStatus === "cevapAlındı" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Adres
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={form.address}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      İlgilendiği daire
+                    </label>
+                    <input
+                      type="text"
+                      name="interested"
+                      value={form.interested}
+                      onChange={handleInputChange}
+                      placeholder="İlgilendiği daire"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Adres
+                  {form.callStatus === "cevapAlındı"
+                    ? "Arama Tarihi"
+                    : "Son Arama Tarihi"}
                 </label>
                 <input
                   type="text"
-                  name="address"
-                  value={form.address}
-                  onChange={handleInputChange}
+                  name="lastCallDate"
+                  placeholder="GG/AA/YYYY"
+                  value={form.lastCallDate}
+                  onChange={handleLastCallDateChange}
+                  required
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
-              {/* New Field: İlgilendiği daire */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  İlgilendiği daire
-                </label>
-                <input
-                  type="text"
-                  name="interested"
-                  value={form.interested}
-                  onChange={handleInputChange}
-                  placeholder="İlgilendiği daire"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Son Arama Tarihi
-                </label>
-                <div className="mt-1 flex items-center space-x-2">
-                  <input
-                    type="text"
-                    name="lastCallDate"
-                    placeholder="GG/AA/YYYY"
-                    value={form.lastCallDate}
-                    onChange={handleLastCallDateChange}
-                    className="flex-1 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm({ ...form, lastCallDate: "00/00/0000" })
-                    }
-                    className={`rounded-full px-3 py-1 border transition-colors ${
-                      form.lastCallDate === "00/00/0000"
-                        ? "bg-green-500 border-green-500 text-white"
-                        : "bg-transparent border-gray-300 text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    Cevapsız
-                  </button>
-                </div>
-              </div>
-              {/* New Field: Kanal */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Kanal
-                </label>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {[
-                    "Instagram",
-                    "Facebook",
-                    "TikTok",
-                    "Youtube",
-                    "Website iletişim form",
-                    "Whatsapp",
-                    "Telefon",
-                    "Lead",
-                  ].map((option) => (
-                    <button
-                      type="button"
-                      key={option}
-                      onClick={() =>
-                        setForm({ ...form, channel: option })
-                      }
-                      className={`px-4 py-2 border rounded-full transition-colors ${
-                        form.channel === option
-                          ? "bg-[#00A86B] text-white"
-                          : "bg-transparent text-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Açıklama
-                </label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                ></textarea>
-              </div>
+              {form.callStatus === "cevapAlındı" && (
+                <>
+                  {/* Kanal Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Kanal <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {[
+                        "Instagram",
+                        "Facebook",
+                        "TikTok",
+                        "Youtube",
+                        "Website iletişim form",
+                        "Whatsapp",
+                        "Telefon",
+                        "Lead",
+                      ].map((option) => (
+                        <button
+                          type="button"
+                          key={option}
+                          onClick={() => setForm({ ...form, channel: option })}
+                          className={`px-4 py-2 border rounded-full transition-colors ${
+                            form.channel === option
+                              ? "bg-[#00A86B] text-white"
+                              : "bg-transparent text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Durum Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Durum <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {["Olumlu", "Orta", "Olumsuz"].map((option) => (
+                        <button
+                          type="button"
+                          key={option}
+                          onClick={() => setForm({ ...form, durum: option })}
+                          className={`px-4 py-2 border rounded-full transition-colors ${
+                            form.durum === option
+                              ? "bg-[#00A86B] text-white"
+                              : "bg-transparent text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Açıklama Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Açıklama <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="description"
+                      value={form.description}
+                      onChange={handleInputChange}
+                      rows={3}
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    ></textarea>
+                  </div>
+                </>
+              )}
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   type="button"

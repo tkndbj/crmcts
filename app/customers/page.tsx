@@ -104,6 +104,9 @@ function CustomersPageContent() {
     description: "",
     interested: "",
     channel: "",
+    durum: "",
+    callStatus: "cevapAlındı", // "cevapAlındı" (default) or "cevapsiz"
+    missedCall: false,       // false when "cevapAlındı", true when "cevapsiz"
   });
   const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -218,6 +221,16 @@ function CustomersPageContent() {
   const handleSaveCustomer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    // In "Cevap Alındı" mode, channel and durum are compulsory.
+    if (form.callStatus === "cevapAlındı") {
+      if (!form.channel.trim() || !form.durum.trim()) {
+        setError("Kanal ve Durum alanları zorunludur.");
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const user = auth.currentUser;
@@ -227,32 +240,58 @@ function CustomersPageContent() {
         return;
       }
       if (!selectedCustomer) {
-        await addDoc(collection(firestore, "customers"), {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          address: form.address,
-          lastCallDate: form.lastCallDate,
-          description: form.description,
-          interested: form.interested,
-          channel: form.channel,
-          owner: user.uid,
-          ownerName: user.displayName || user.email || "Bilinmiyor",
-          createdAt: new Date().toISOString(),
-        });
+        if (form.callStatus === "cevapsiz") {
+          // In "cevapsiz" mode, only phone and lastCallDate are used, and missedCall is true.
+          await addDoc(collection(firestore, "customers"), {
+            phone: form.phone,
+            lastCallDate: form.lastCallDate,
+            missedCall: true,
+            owner: user.uid,
+            ownerName: user.displayName || user.email || "Bilinmiyor",
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          // In "cevapAlındı" mode, include all fields.
+          await addDoc(collection(firestore, "customers"), {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            address: form.address,
+            lastCallDate: form.lastCallDate,
+            description: form.description,
+            interested: form.interested,
+            channel: form.channel,
+            durum: form.durum,
+            missedCall: false,
+            owner: user.uid,
+            ownerName: user.displayName || user.email || "Bilinmiyor",
+            createdAt: new Date().toISOString(),
+          });
+        }
       } else {
         const customerRef = doc(firestore, "customers", selectedCustomer.id);
-        await updateDoc(customerRef, {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          address: form.address,
-          lastCallDate: form.lastCallDate,
-          description: form.description,
-          interested: form.interested,
-          channel: form.channel,
-          updatedAt: new Date().toISOString(),
-        });
+        if (form.callStatus === "cevapsiz") {
+          await updateDoc(customerRef, {
+            phone: form.phone,
+            lastCallDate: form.lastCallDate,
+            missedCall: true,
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          await updateDoc(customerRef, {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            address: form.address,
+            lastCallDate: form.lastCallDate,
+            description: form.description,
+            interested: form.interested,
+            channel: form.channel,
+            durum: form.durum,
+            missedCall: false,
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
       setForm({
         name: "",
@@ -263,6 +302,9 @@ function CustomersPageContent() {
         description: "",
         interested: "",
         channel: "",
+        durum: "",
+        callStatus: "cevapAlındı",
+        missedCall: false,
       });
       setSelectedCustomer(null);
       setModalOpen(false);
@@ -285,6 +327,9 @@ function CustomersPageContent() {
       description: customer.description || "",
       interested: customer.interested || "",
       channel: customer.channel || "",
+      durum: customer.durum || "",
+      callStatus: customer.missedCall ? "cevapsiz" : "cevapAlındı",
+      missedCall: customer.missedCall || false,
     });
     setModalOpen(true);
   };
@@ -438,16 +483,19 @@ function CustomersPageContent() {
     }
   };
 
+  // Modified filtering:
+  // - "genel": only customers with missedCall === false.
+  // - "cevapsizlar": only customers with missedCall === true.
   const filteredCustomers =
     activeTab === "genel"
-      ? customers.filter((customer) => customer.lastCallDate !== "00/00/0000")
+      ? customers.filter((customer) => customer.missedCall === false)
       : activeTab === "kendi"
       ? customers.filter((customer) => {
           const user = auth.currentUser;
           return user && customer.owner === user.uid;
         })
       : activeTab === "cevapsizlar"
-      ? customers.filter((customer) => customer.lastCallDate === "00/00/0000")
+      ? customers.filter((customer) => customer.missedCall === true)
       : customers;
 
   const activeSearchQuery = searchQueries[activeTab].toLowerCase();
@@ -597,55 +645,54 @@ function CustomersPageContent() {
             <div className="flex space-x-2 md:space-x-4 items-center">
               {/* New: Calendar icon & date filter */}
               <div className="relative flex items-center">
-              <button
-  onClick={() => {
-    if (calendarInputRef.current) {
-      if (calendarInputRef.current.showPicker) {
-        calendarInputRef.current.showPicker();
-      } else {
-        calendarInputRef.current.click();
-      }
-    }
-  }}
-  title="Tarihe Göre Filtrele"
-  className="p-2"
->
-  <FiCalendar
-    size={20}
-    className="text-gray-500 hover:text-blue-500 transition-colors"
-  />
-</button>
-<input
-  type="date"
-  ref={calendarInputRef}
-  value={filterDate}
-  onChange={(e) => setFilterDate(e.target.value)}
-  style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-/>
-
-  {showCalendar && (
-    <div className="absolute top-full left-0 mt-2 z-50">
-      <input
-        type="date"
-        value={filterDate}
-        onChange={(e) => {
-          setFilterDate(e.target.value);
-          setShowCalendar(false);
-        }}
-        className="border rounded p-1 bg-white dark:bg-gray-700 dark:text-gray-100"
-      />
-    </div>
-  )}
-  {filterDate && (
-    <button
-      onClick={() => setFilterDate("")}
-      className="ml-2 text-red-500"
-      title="Filtreyi Temizle"
-    >
-      <FiX size={16} />
-    </button>
-  )}
-</div>
+                <button
+                  onClick={() => {
+                    if (calendarInputRef.current) {
+                      if (calendarInputRef.current.showPicker) {
+                        calendarInputRef.current.showPicker();
+                      } else {
+                        calendarInputRef.current.click();
+                      }
+                    }
+                  }}
+                  title="Tarihe Göre Filtrele"
+                  className="p-2"
+                >
+                  <FiCalendar
+                    size={20}
+                    className="text-gray-500 hover:text-blue-500 transition-colors"
+                  />
+                </button>
+                <input
+                  type="date"
+                  ref={calendarInputRef}
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+                />
+                {showCalendar && (
+                  <div className="absolute top-full left-0 mt-2 z-50">
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => {
+                        setFilterDate(e.target.value);
+                        setShowCalendar(false);
+                      }}
+                      className="border rounded p-1 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                )}
+                {filterDate && (
+                  <button
+                    onClick={() => setFilterDate("")}
+                    className="ml-2 text-red-500"
+                    title="Filtreyi Temizle"
+                  >
+                    <FiX size={16} />
+                  </button>
+                )}
+              </div>
 
               {/* New Search Box */}
               <input
@@ -694,6 +741,7 @@ function CustomersPageContent() {
               </button>
               <button
                 onClick={() => {
+                  // Reset form to defaults when adding a new customer.
                   setSelectedCustomer(null);
                   setForm({
                     name: "",
@@ -704,6 +752,9 @@ function CustomersPageContent() {
                     description: "",
                     interested: "",
                     channel: "",
+                    durum: "",
+                    callStatus: "cevapAlındı",
+                    missedCall: false,
                   });
                   setModalOpen(true);
                 }}
@@ -770,15 +821,32 @@ function CustomersPageContent() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {sortedCustomers.length > 0 ? (
                     sortedCustomers.map((customer) => (
-                      <tr key={customer.id} className="whitespace-nowrap">
+                      // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
+                      <tr key={customer.id} className={`whitespace-nowrap ${activeTab === "kendi" && customer.missedCall ? "bg-yellow-100" : ""}`}>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                           {customer.ownerName}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
                           <span
                             onClick={() => handleCustomerInfo(customer)}
-                            className="cursor-pointer hover:text-blue-500"
+                            className="cursor-pointer hover:text-blue-500 flex items-center"
                           >
+                            {/* Only show status circle for customers with missedCall === false */}
+                            {!customer.missedCall && customer.durum && (
+                              <span
+                                className="inline-block w-3 h-3 rounded-full mr-1"
+                                style={{
+                                  backgroundColor:
+                                    customer.durum.toLowerCase() === "olumlu"
+                                      ? "green"
+                                      : customer.durum.toLowerCase() === "orta"
+                                      ? "yellow"
+                                      : customer.durum.toLowerCase() === "olumsuz"
+                                      ? "red"
+                                      : "transparent",
+                                }}
+                              ></span>
+                            )}
                             {customer.name}
                           </span>
                         </td>
@@ -806,15 +874,6 @@ function CustomersPageContent() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
                           <div className="flex items-center justify-center space-x-2">
-                            {customer.lastCallDate === "00/00/0000" && (
-                              <button
-                                onClick={() => handleOpenUpdateCallModal(customer)}
-                                title="Son Arama Tarihi Güncelle"
-                                className="text-blue-500 hover:text-blue-700 transition-colors"
-                              >
-                                <FiPhone size={20} />
-                              </button>
-                            )}
                             {isOwner(customer) && (
                               <>
                                 <button
