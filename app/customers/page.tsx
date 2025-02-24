@@ -122,9 +122,13 @@ function CustomersPageContent() {
     callStatus: "cevapAlindi",
     missedCall: false,
   });
-  const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(null);
+  const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(
+    null
+  );
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">("genel");
+  const [activeTab, setActiveTab] = useState<"genel" | "kendi" | "cevapsizlar">(
+    "genel"
+  );
   const [customerInfoModalOpen, setCustomerInfoModalOpen] = useState(false);
   const [selectedCustomerInfo, setSelectedCustomerInfo] = useState<any>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -162,7 +166,9 @@ function CustomersPageContent() {
   // NEW: New state for calendar-based date/time when "days" is selected
   const [reminderDateTime, setReminderDateTime] = useState("");
   // NEW: Mode for the reminder modal (new vs edit)
-  const [reminderModalMode, setReminderModalMode] = useState<"new" | "edit">("new");
+  const [reminderModalMode, setReminderModalMode] = useState<"new" | "edit">(
+    "new"
+  );
 
   // NEW: State for owner filter dropdown in the table header
   const [ownerFilter, setOwnerFilter] = useState("Genel");
@@ -423,7 +429,9 @@ function CustomersPageContent() {
       setReminderDateTime("");
     } else if (mode === "edit") {
       if (customer.reminderTimestamp) {
-        const reminderDate = new Date(customer.reminderTimestamp.seconds * 1000);
+        const reminderDate = new Date(
+          customer.reminderTimestamp.seconds * 1000
+        );
         // Format for datetime-local input: "YYYY-MM-DDTHH:MM"
         const dtLocal = reminderDate.toISOString().substring(0, 16);
         setReminderUnit("days");
@@ -516,10 +524,10 @@ function CustomersPageContent() {
   const filteredCustomersWithSearch = activeSearchQuery
     ? filteredCustomers.filter(
         (customer) =>
-          customer.name.toLowerCase().includes(activeSearchQuery) ||
-          customer.email.toLowerCase().includes(activeSearchQuery) ||
-          customer.address.toLowerCase().includes(activeSearchQuery) ||
-          customer.phone.toLowerCase().includes(activeSearchQuery)
+          (customer.name || "").toLowerCase().includes(activeSearchQuery) ||
+          (customer.email || "").toLowerCase().includes(activeSearchQuery) ||
+          (customer.address || "").toLowerCase().includes(activeSearchQuery) ||
+          (customer.phone || "").toLowerCase().includes(activeSearchQuery)
       )
     : filteredCustomers;
 
@@ -557,13 +565,15 @@ function CustomersPageContent() {
       case "lastCallAsc":
         sortedCustomers.sort(
           (a, b) =>
-            parseDateStr(a.lastCallDate).getTime() - parseDateStr(b.lastCallDate).getTime()
+            parseDateStr(a.lastCallDate).getTime() -
+            parseDateStr(b.lastCallDate).getTime()
         );
         break;
       case "lastCallDesc":
         sortedCustomers.sort(
           (a, b) =>
-            parseDateStr(b.lastCallDate).getTime() - parseDateStr(a.lastCallDate).getTime()
+            parseDateStr(b.lastCallDate).getTime() -
+            parseDateStr(a.lastCallDate).getTime()
         );
         break;
       default:
@@ -682,7 +692,11 @@ function CustomersPageContent() {
                   ref={calendarInputRef}
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+                  style={{
+                    position: "absolute",
+                    opacity: 0,
+                    pointerEvents: "none",
+                  }}
                 />
                 {showCalendar && (
                   <div className="absolute top-full left-0 mt-2 z-50">
@@ -844,7 +858,11 @@ function CustomersPageContent() {
                         // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
                         <tr
                           key={customer.id}
-                          className={`whitespace-nowrap ${activeTab === "kendi" && customer.missedCall ? "bg-yellow-100" : ""}`}
+                          className={`whitespace-nowrap ${
+                            activeTab === "kendi" && customer.missedCall
+                              ? "bg-yellow-100"
+                              : ""
+                          }`}
                         >
                           <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
                             {customer.ownerName}
@@ -862,9 +880,11 @@ function CustomersPageContent() {
                                     backgroundColor:
                                       customer.durum.toLowerCase() === "olumlu"
                                         ? "green"
-                                        : customer.durum.toLowerCase() === "orta"
+                                        : customer.durum.toLowerCase() ===
+                                          "orta"
                                         ? "orange"
-                                        : customer.durum.toLowerCase() === "olumsuz"
+                                        : customer.durum.toLowerCase() ===
+                                          "olumsuz"
                                         ? "red"
                                         : "transparent",
                                   }}
@@ -873,7 +893,9 @@ function CustomersPageContent() {
                               {customer.name}
                             </span>
                           </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass} flex items-center space-x-2`}>
+                          <td
+                            className={`px-4 py-2 text-sm ${cellTextClass} flex items-center space-x-2`}
+                          >
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -895,7 +917,9 @@ function CustomersPageContent() {
                           <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
                             {customer.interested}
                           </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass} text-center`}>
+                          <td
+                            className={`px-4 py-2 text-sm ${cellTextClass} text-center`}
+                          >
                             <div className="flex items-center justify-center space-x-2">
                               {isOwner(customer) && (
                                 <>
@@ -907,7 +931,9 @@ function CustomersPageContent() {
                                     <FiEdit size={20} />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteCustomer(customer)}
+                                    onClick={() =>
+                                      handleDeleteCustomer(customer)
+                                    }
                                     title="Müşteriyi Sil"
                                     className="hover:text-black dark:hover:text-white transition-colors"
                                   >
@@ -918,7 +944,10 @@ function CustomersPageContent() {
                                       e.stopPropagation();
                                       if (
                                         customer.reminderTimestamp &&
-                                        new Date(customer.reminderTimestamp.seconds * 1000) > new Date()
+                                        new Date(
+                                          customer.reminderTimestamp.seconds *
+                                            1000
+                                        ) > new Date()
                                       ) {
                                         openReminderModal(customer, "edit");
                                       } else {
@@ -932,7 +961,10 @@ function CustomersPageContent() {
                                       size={20}
                                       className={
                                         customer.reminderTimestamp &&
-                                        new Date(customer.reminderTimestamp.seconds * 1000) > new Date()
+                                        new Date(
+                                          customer.reminderTimestamp.seconds *
+                                            1000
+                                        ) > new Date()
                                           ? "text-yellow-500"
                                           : "text-black dark:text-white"
                                       }

@@ -93,7 +93,11 @@ export default function CustomerFormModal({
               <button
                 type="button"
                 onClick={() =>
-                  setForm({ ...form, callStatus: "cevapAlindi", missedCall: false })
+                  setForm({
+                    ...form,
+                    callStatus: "cevapAlindi",
+                    missedCall: false,
+                  })
                 }
                 className={`px-4 py-2 border rounded-full transition-colors ${
                   form.callStatus === "cevapAlindi"
@@ -149,20 +153,34 @@ export default function CustomerFormModal({
                 </>
               )}
 
-              {/* New İsim field for "cevapsız" mode (not compulsory) */}
+              {/* New fields for "cevapsız" mode (non-compulsory) */}
               {form.callStatus === "cevapsiz" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    İsim
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      İsim
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      E-posta
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                </>
               )}
 
               <div>
