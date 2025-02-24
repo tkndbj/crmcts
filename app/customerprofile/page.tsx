@@ -61,7 +61,7 @@ function isOwner(customer: Customer) {
 }
 
 function CustomerProfileContent() {
-  const router = useRouter(); // Initialize router here
+  const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -220,7 +220,6 @@ function CustomerProfileContent() {
         reminderTimestamp: Timestamp.fromDate(targetTime),
         reminderDescription: reminderAciklama,
       });
-      // Once the reminder is set, the live reminder useEffect will handle showing the modal at the right time.
       setReminderModalOpen(false);
       setReminderAciklama("");
       setReminderDelay("");
@@ -232,41 +231,45 @@ function CustomerProfileContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-        <p className="text-black dark:text-white">Yükleniyor...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <p className="text-xl font-medium text-gray-800 dark:text-gray-100">
+          Yükleniyor...
+        </p>
       </div>
     );
   }
 
   if (!customer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-        <p className="text-black dark:text-white">Müşteri bulunamadı.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <p className="text-xl font-medium text-gray-800 dark:text-gray-100">
+          Müşteri bulunamadı.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 relative">
+    <div className="min-h-screen p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
         {/* Header with Customer Name and Action Icons */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-black dark:text-white">
+        <div className="flex flex-col sm:flex-row justify-between items-center border-b pb-4 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {customer.name}
           </h1>
           {isOwner(customer) && (
-            <div className="flex space-x-4">
+            <div className="mt-4 sm:mt-0 flex space-x-3">
               <button
                 onClick={handleOpenEditModal}
                 title="Müşteriyi Düzenle"
-                className="p-2 border border-blue-500 rounded-full hover:bg-blue-500 hover:text-white transition-colors"
+                className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
               >
                 <FiEdit size={20} />
               </button>
               <button
                 onClick={() => openReminderModal("new")}
                 title="Hatırlatma Ayarla"
-                className="p-2 border border-blue-500 rounded-full hover:bg-blue-500 hover:text-white transition-colors"
+                className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
               >
                 <FiBell
                   size={20}
@@ -275,7 +278,7 @@ function CustomerProfileContent() {
                     new Date(customer.reminderTimestamp.seconds * 1000) >
                       new Date()
                       ? "text-yellow-500"
-                      : "text-black dark:text-white"
+                      : "text-blue-700"
                   }
                 />
               </button>
@@ -379,19 +382,19 @@ function CustomerProfileContent() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md relative"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 z-10 w-full max-w-md relative"
             >
-              {/* "Profile git" button on top right of the reminder modal */}
+              {/* "Profile git" button on top right */}
               <button
                 onClick={() => {
                   router.push(`/customerprofile?id=${customer.id}`);
                   setReminderModalOpen(false);
                 }}
-                className="absolute top-4 right-4 bg-transparent border border-gray-500 dark:border-gray-300 rounded-full px-3 py-1 text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="absolute top-4 right-4 bg-transparent border border-gray-400 dark:border-gray-300 rounded-full px-3 py-1 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Profile git
               </button>
-              <h2 className="text-xl font-bold mb-4 text-black dark:text-white">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 {reminderModalMode === "new"
                   ? `${customer.name} için Hatırlatma Ayarla`
                   : `${customer.name} için Ayarlanmış Hatırlatmayı Düzenle`}
@@ -399,38 +402,38 @@ function CustomerProfileContent() {
               <div className="space-y-4">
                 {reminderUnit === "days" ? (
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white">
+                    <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
                       Tarih ve Saat
                     </label>
                     <input
                       type="datetime-local"
                       value={reminderDateTime}
                       onChange={(e) => setReminderDateTime(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white">
+                    <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
                       Süre
                     </label>
                     <input
                       type="number"
                       value={reminderDelay}
                       onChange={(e) => setReminderDelay(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       placeholder="Süre girin"
                     />
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-black dark:text-white">
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
                     Birim
                   </label>
                   <select
                     value={reminderUnit}
                     onChange={(e) => setReminderUnit(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="minutes">Dakika</option>
                     <option value="hours">Saat</option>
@@ -438,22 +441,22 @@ function CustomerProfileContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black dark:text-white">
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
                     Açıklama
                   </label>
                   <input
                     type="text"
                     value={reminderAciklama}
                     onChange={(e) => setReminderAciklama(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     placeholder="Açıklama girin"
                   />
                 </div>
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end space-x-4 pt-2">
                   <button
                     type="button"
                     onClick={() => setReminderModalOpen(false)}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-black dark:text-white"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-800 dark:text-gray-100"
                   >
                     İptal
                   </button>
@@ -462,7 +465,7 @@ function CustomerProfileContent() {
                       <button
                         type="button"
                         onClick={handleSetReminder}
-                        className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors text-black dark:text-white"
+                        className="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-600 transition-colors text-gray-100"
                       >
                         Güncelle
                       </button>
@@ -471,7 +474,7 @@ function CustomerProfileContent() {
                         onClick={() => {
                           setReminderModalOpen(false);
                         }}
-                        className="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition-colors text-black dark:text-white"
+                        className="px-4 py-2 bg-red-500 rounded-md hover:bg-red-600 transition-colors text-gray-100"
                       >
                         Sil
                       </button>
@@ -481,7 +484,7 @@ function CustomerProfileContent() {
                     <button
                       type="button"
                       onClick={handleSetReminder}
-                      className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors text-black dark:text-white"
+                      className="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-600 transition-colors text-gray-100"
                     >
                       Ayarla
                     </button>

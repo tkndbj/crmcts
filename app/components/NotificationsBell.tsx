@@ -128,7 +128,7 @@ const NotificationsBell = () => {
           </button>
 
           {open && (
-            <div className="absolute bottom-full mb-2 right-0 bg-white p-4 rounded-md shadow-lg w-80">
+            <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-[#141a30] p-4 rounded-md shadow-lg w-80 text-black dark:text-white">
               <h2 className="font-bold mb-2">Bildirimler</h2>
               {notifications.length > 0 ? (
                 <ul className="max-h-60 overflow-y-auto">
@@ -143,14 +143,12 @@ const NotificationsBell = () => {
                       }}
                     >
                       <p className="text-sm">{notif.message}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(notif.createdAt)}
-                      </p>
+                      <p className="text-xs">{formatDate(notif.createdAt)}</p>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-600">Bildirim yok</p>
+                <p className="text-sm">Bildirim yok</p>
               )}
             </div>
           )}
