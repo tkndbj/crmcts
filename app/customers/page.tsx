@@ -119,7 +119,7 @@ function CustomersPageContent() {
     interested: "",
     channel: "",
     durum: "",
-    callStatus: "cevapAlindi", // Now this is correctly typed
+    callStatus: "cevapAlindi",
     missedCall: false,
   });
   const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(null);
@@ -443,7 +443,7 @@ function CustomersPageContent() {
       if (!reminderDateTime) return;
       targetTime = new Date(reminderDateTime);
       const delayMs = targetTime.getTime() - Date.now();
-      if (delayMs <= 0) return; // Optionally, alert the user here.
+      if (delayMs <= 0) return;
     } else {
       const delayValue = parseInt(reminderDelay, 10);
       if (isNaN(delayValue)) return;
@@ -629,8 +629,8 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("genel")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "genel"
-                    ? "border-blue-500 text-blue-500 font-semibold"
-                    : "border-transparent text-gray-500 dark:text-gray-400"
+                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
                 Genel
@@ -639,8 +639,8 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("kendi")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "kendi"
-                    ? "border-blue-500 text-blue-500 font-semibold"
-                    : "border-transparent text-gray-500 dark:text-gray-400"
+                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
                 Kendi Müşterilerim
@@ -649,8 +649,8 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("cevapsizlar")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "cevapsizlar"
-                    ? "border-blue-500 text-blue-500 font-semibold"
-                    : "border-transparent text-gray-500 dark:text-gray-400"
+                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
                 Cevapsızlar
@@ -674,7 +674,7 @@ function CustomersPageContent() {
                 >
                   <FiCalendar
                     size={20}
-                    className="text-gray-500 hover:text-blue-500 transition-colors"
+                    className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
                   />
                 </button>
                 <input
@@ -693,7 +693,7 @@ function CustomersPageContent() {
                         setFilterDate(e.target.value);
                         setShowCalendar(false);
                       }}
-                      className="border rounded p-1 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      className="border rounded p-1 bg-white dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 )}
@@ -725,7 +725,7 @@ function CustomersPageContent() {
                     ? "Kendi müşterilerinde ara"
                     : "Cevapsızlarda ara"
                 }
-                className="bg-transparent border border-gray-300 rounded-full px-4 py-1 focus:outline-none"
+                className="bg-transparent border border-gray-300 rounded-full px-4 py-1 focus:outline-none text-black dark:text-white"
               />
               <button
                 onClick={() => {
@@ -735,7 +735,7 @@ function CustomersPageContent() {
                     setSortModalOpen(true);
                   }
                 }}
-                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 text-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap flex items-center"
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap flex items-center text-black dark:text-white"
               >
                 {currentSort ? (
                   <>
@@ -748,7 +748,7 @@ function CustomersPageContent() {
               </button>
               <button
                 onClick={handleGenerateReport}
-                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 text-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap"
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap text-black dark:text-white"
               >
                 <FiFileText size={18} className="inline mr-1" />
                 <span>Rapor Çıkar</span>
@@ -772,7 +772,7 @@ function CustomersPageContent() {
                   });
                   setModalOpen(true);
                 }}
-                className="px-2 py-1 md:px-4 md:py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
+                className="px-2 py-1 md:px-4 md:py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors whitespace-nowrap text-black dark:text-white"
               >
                 Müşteri Ekle
               </button>
@@ -786,7 +786,7 @@ function CustomersPageContent() {
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider cursor-pointer relative"
+                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer relative text-black dark:text-white"
                       onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
                     >
                       Ekleyen
@@ -802,8 +802,8 @@ function CustomersPageContent() {
                               }}
                               className={`px-4 py-2 cursor-pointer ${
                                 owner === ownerFilter
-                                  ? "bg-[#00A86B] text-white"
-                                  : "hover:bg-gray-100 dark:hover:bg-gray-600"
+                                  ? "bg-black dark:bg-white text-white dark:text-black"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
                               }`}
                             >
                               {owner}
@@ -812,22 +812,22 @@ function CustomersPageContent() {
                         </div>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       Müşteri
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       E-posta
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       Telefon
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       Adres
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       İlgilendiği daire
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       İşlemler
                     </th>
                   </tr>
@@ -837,13 +837,13 @@ function CustomersPageContent() {
                     sortedCustomers.map((customer) => (
                       // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
                       <tr key={customer.id} className={`whitespace-nowrap ${activeTab === "kendi" && customer.missedCall ? "bg-yellow-100" : ""}`}>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white">
                           {customer.ownerName}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white">
                           <span
                             onClick={() => handleCustomerInfo(customer)}
-                            className="cursor-pointer hover:text-blue-500 flex items-center"
+                            className="cursor-pointer hover:text-black dark:hover:text-white flex items-center"
                           >
                             {/* Only show status circle for customers with missedCall === false */}
                             {!customer.missedCall && customer.durum && (
@@ -864,43 +864,43 @@ function CustomersPageContent() {
                             {customer.name}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white flex items-center space-x-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEmailIconClick(customer);
                             }}
                             title="E-posta Gönder"
-                            className="text-green-500 hover:text-green-700 transition-colors"
+                            className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
                           >
                             <FiMail size={20} />
                           </button>
                           <span>{customer.email}</span>
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white">
                           {customer.phone}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white">
                           {customer.address}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white">
                           {customer.interested}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-center">
+                        <td className="px-4 py-2 text-sm text-black dark:text-white text-center">
                           <div className="flex items-center justify-center space-x-2">
                             {isOwner(customer) && (
                               <>
                                 <button
                                   onClick={() => handleEditCustomer(customer)}
                                   title="Müşteriyi Düzenle"
-                                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                                  className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
                                 >
                                   <FiEdit size={20} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteCustomer(customer)}
                                   title="Müşteriyi Sil"
-                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                  className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
                                 >
                                   <FiTrash2 size={20} />
                                 </button>
@@ -919,19 +919,9 @@ function CustomersPageContent() {
                                     }
                                   }}
                                   title="Hatırlatma Ayarla"
-                                  className="hover:text-yellow-500 transition-colors"
+                                  className="hover:text-black dark:hover:text-white transition-colors"
                                 >
-                                  <FiBell
-                                    size={20}
-                                    className={
-                                      customer.reminderTimestamp &&
-                                      new Date(
-                                        customer.reminderTimestamp.seconds * 1000
-                                      ) > new Date()
-                                        ? "text-yellow-500"
-                                        : "text-gray-500"
-                                    }
-                                  />
+                                  <FiBell size={20} className="text-black dark:text-white" />
                                 </button>
                               </>
                             )}
@@ -943,7 +933,7 @@ function CustomersPageContent() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
+                        className="px-4 py-4 text-center text-black dark:text-white"
                       >
                         Müşteri bulunamadı.
                       </td>
@@ -1043,7 +1033,7 @@ function CustomersPageContent() {
                 transition={{ duration: 0.3 }}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
               >
-                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                <h2 className="text-xl font-bold mb-4 text-black dark:text-white">
                   {reminderModalMode === "new"
                     ? `${reminderCustomer?.name} için Hatırlatma Ayarla`
                     : `${reminderCustomer?.name} için Ayarlanmış Hatırlatmayı Düzenle`}
@@ -1051,38 +1041,38 @@ function CustomersPageContent() {
                 <div className="space-y-4">
                   {reminderUnit === "days" ? (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      <label className="block text-sm font-medium text-black dark:text-white">
                         Tarih ve Saat
                       </label>
                       <input
                         type="datetime-local"
                         value={reminderDateTime}
                         onChange={(e) => setReminderDateTime(e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
                       />
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      <label className="block text-sm font-medium text-black dark:text-white">
                         Süre
                       </label>
                       <input
                         type="number"
                         value={reminderDelay}
                         onChange={(e) => setReminderDelay(e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
                         placeholder="Süre girin"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <label className="block text-sm font-medium text-black dark:text-white">
                       Birim
                     </label>
                     <select
                       value={reminderUnit}
                       onChange={(e) => setReminderUnit(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
                     >
                       <option value="minutes">Dakika</option>
                       <option value="hours">Saat</option>
@@ -1090,14 +1080,14 @@ function CustomersPageContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <label className="block text-sm font-medium text-black dark:text-white">
                       Açıklama
                     </label>
                     <input
                       type="text"
                       value={reminderAciklama}
                       onChange={(e) => setReminderAciklama(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
                       placeholder="Açıklama girin"
                     />
                   </div>
@@ -1105,7 +1095,7 @@ function CustomersPageContent() {
                     <button
                       type="button"
                       onClick={() => setReminderModalOpen(false)}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-gray-900 dark:text-gray-100"
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-black dark:text-white"
                     >
                       İptal
                     </button>
@@ -1114,14 +1104,14 @@ function CustomersPageContent() {
                         <button
                           type="button"
                           onClick={handleSetReminder}
-                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors text-black dark:text-white"
                         >
                           Güncelle
                         </button>
                         <button
                           type="button"
                           onClick={handleDeleteReminder}
-                          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          className="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition-colors text-black dark:text-white"
                         >
                           Sil
                         </button>
@@ -1131,7 +1121,7 @@ function CustomersPageContent() {
                       <button
                         type="button"
                         onClick={handleSetReminder}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors text-black dark:text-white"
                       >
                         Ayarla
                       </button>
