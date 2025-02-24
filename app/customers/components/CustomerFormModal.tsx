@@ -78,7 +78,6 @@ export default function CustomerFormModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.3 }}
-            // Modified container classes: Added mx-4 for horizontal margin, max-h-[90vh] and overflow-y-auto to ensure the modal scales down and fits within the viewport without scrolling.
             className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
           >
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
@@ -149,6 +148,23 @@ export default function CustomerFormModal({
                   </div>
                 </>
               )}
+
+              {/* New İsim field for "cevapsız" mode (not compulsory) */}
+              {form.callStatus === "cevapsiz" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    İsim
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Telefon

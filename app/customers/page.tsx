@@ -629,7 +629,7 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("genel")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "genel"
-                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    ? "border-teal-500 text-teal-500 font-semibold"
                     : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
@@ -639,7 +639,7 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("kendi")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "kendi"
-                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    ? "border-teal-500 text-teal-500 font-semibold"
                     : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
@@ -649,7 +649,7 @@ function CustomersPageContent() {
                 onClick={() => setActiveTab("cevapsizlar")}
                 className={`px-2 py-1 md:px-4 md:py-2 rounded-t-lg border-b-2 ${
                   activeTab === "cevapsizlar"
-                    ? "border-black dark:border-white text-black dark:text-white font-semibold"
+                    ? "border-teal-500 text-teal-500 font-semibold"
                     : "border-transparent text-black dark:text-white"
                 } whitespace-nowrap`}
               >
@@ -735,7 +735,7 @@ function CustomersPageContent() {
                     setSortModalOpen(true);
                   }
                 }}
-                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap flex items-center text-black dark:text-white"
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent dark:text-white hover:bg-blue-500 hover:text-white transition-colors whitespace-nowrap flex items-center"
               >
                 {currentSort ? (
                   <>
@@ -748,7 +748,7 @@ function CustomersPageContent() {
               </button>
               <button
                 onClick={handleGenerateReport}
-                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent hover:bg-blue-50 transition-colors whitespace-nowrap text-black dark:text-white"
+                className="px-2 py-1 md:px-4 md:py-2 border border-blue-500 rounded-full bg-transparent dark:text-white hover:bg-blue-500 hover:text-white transition-colors whitespace-nowrap"
               >
                 <FiFileText size={18} className="inline mr-1" />
                 <span>Rapor Çıkar</span>
@@ -772,7 +772,7 @@ function CustomersPageContent() {
                   });
                   setModalOpen(true);
                 }}
-                className="px-2 py-1 md:px-4 md:py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors whitespace-nowrap text-black dark:text-white"
+                className="px-2 py-1 md:px-4 md:py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors whitespace-nowrap text-white"
               >
                 Müşteri Ekle
               </button>
@@ -834,101 +834,117 @@ function CustomersPageContent() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {sortedCustomers.length > 0 ? (
-                    sortedCustomers.map((customer) => (
-                      // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
-                      <tr key={customer.id} className={`whitespace-nowrap ${activeTab === "kendi" && customer.missedCall ? "bg-yellow-100" : ""}`}>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white">
-                          {customer.ownerName}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white">
-                          <span
-                            onClick={() => handleCustomerInfo(customer)}
-                            className="cursor-pointer hover:text-black dark:hover:text-white flex items-center"
-                          >
-                            {/* Only show status circle for customers with missedCall === false */}
-                            {!customer.missedCall && customer.durum && (
-                              <span
-                                className="inline-block w-3 h-3 rounded-full mr-1"
-                                style={{
-                                  backgroundColor:
-                                    customer.durum.toLowerCase() === "olumlu"
-                                      ? "green"
-                                      : customer.durum.toLowerCase() === "orta"
-                                      ? "orange"
-                                      : customer.durum.toLowerCase() === "olumsuz"
-                                      ? "red"
-                                      : "transparent",
-                                }}
-                              ></span>
-                            )}
-                            {customer.name}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white flex items-center space-x-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEmailIconClick(customer);
-                            }}
-                            title="E-posta Gönder"
-                            className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
-                          >
-                            <FiMail size={20} />
-                          </button>
-                          <span>{customer.email}</span>
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white">
-                          {customer.phone}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white">
-                          {customer.address}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white">
-                          {customer.interested}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-black dark:text-white text-center">
-                          <div className="flex items-center justify-center space-x-2">
-                            {isOwner(customer) && (
-                              <>
-                                <button
-                                  onClick={() => handleEditCustomer(customer)}
-                                  title="Müşteriyi Düzenle"
-                                  className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
-                                >
-                                  <FiEdit size={20} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteCustomer(customer)}
-                                  title="Müşteriyi Sil"
-                                  className="text-black dark:text-white hover:text-black dark:hover:text-white transition-colors"
-                                >
-                                  <FiTrash2 size={20} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (
-                                      customer.reminderTimestamp &&
-                                      new Date(
-                                        customer.reminderTimestamp.seconds * 1000
-                                      ) > new Date()
-                                    ) {
-                                      openReminderModal(customer, "edit");
-                                    } else {
-                                      openReminderModal(customer, "new");
-                                    }
+                    sortedCustomers.map((customer) => {
+                      // Determine text class: if on "Kendi Müşterilerim" and missedCall then force black text.
+                      const cellTextClass =
+                        activeTab === "kendi" && customer.missedCall
+                          ? "text-black"
+                          : "text-black dark:text-white";
+                      return (
+                        // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
+                        <tr
+                          key={customer.id}
+                          className={`whitespace-nowrap ${activeTab === "kendi" && customer.missedCall ? "bg-yellow-100" : ""}`}
+                        >
+                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                            {customer.ownerName}
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                            <span
+                              onClick={() => handleCustomerInfo(customer)}
+                              className="cursor-pointer hover:text-black dark:hover:text-white flex items-center"
+                            >
+                              {/* Only show status circle for customers with missedCall === false */}
+                              {!customer.missedCall && customer.durum && (
+                                <span
+                                  className="inline-block w-3 h-3 rounded-full mr-1"
+                                  style={{
+                                    backgroundColor:
+                                      customer.durum.toLowerCase() === "olumlu"
+                                        ? "green"
+                                        : customer.durum.toLowerCase() === "orta"
+                                        ? "orange"
+                                        : customer.durum.toLowerCase() === "olumsuz"
+                                        ? "red"
+                                        : "transparent",
                                   }}
-                                  title="Hatırlatma Ayarla"
-                                  className="hover:text-black dark:hover:text-white transition-colors"
-                                >
-                                  <FiBell size={20} className="text-black dark:text-white" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                                ></span>
+                              )}
+                              {customer.name}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass} flex items-center space-x-2`}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEmailIconClick(customer);
+                              }}
+                              title="E-posta Gönder"
+                              className="hover:text-black dark:hover:text-white transition-colors"
+                            >
+                              <FiMail size={20} />
+                            </button>
+                            <span>{customer.email}</span>
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                            {customer.phone}
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                            {customer.address}
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                            {customer.interested}
+                          </td>
+                          <td className={`px-4 py-2 text-sm ${cellTextClass} text-center`}>
+                            <div className="flex items-center justify-center space-x-2">
+                              {isOwner(customer) && (
+                                <>
+                                  <button
+                                    onClick={() => handleEditCustomer(customer)}
+                                    title="Müşteriyi Düzenle"
+                                    className="hover:text-black dark:hover:text-white transition-colors"
+                                  >
+                                    <FiEdit size={20} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteCustomer(customer)}
+                                    title="Müşteriyi Sil"
+                                    className="hover:text-black dark:hover:text-white transition-colors"
+                                  >
+                                    <FiTrash2 size={20} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (
+                                        customer.reminderTimestamp &&
+                                        new Date(customer.reminderTimestamp.seconds * 1000) > new Date()
+                                      ) {
+                                        openReminderModal(customer, "edit");
+                                      } else {
+                                        openReminderModal(customer, "new");
+                                      }
+                                    }}
+                                    title="Hatırlatma Ayarla"
+                                    className="hover:text-black dark:hover:text-white transition-colors"
+                                  >
+                                    <FiBell
+                                      size={20}
+                                      className={
+                                        customer.reminderTimestamp &&
+                                        new Date(customer.reminderTimestamp.seconds * 1000) > new Date()
+                                          ? "text-yellow-500"
+                                          : "text-black dark:text-white"
+                                      }
+                                    />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td
