@@ -23,6 +23,21 @@ function parseDateStr(dateStr: string) {
   return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
 }
 
+// getStatusColor now returns hex codes for our colors.
+function getStatusColor(durum: string) {
+  if (!durum) return "#ffffff"; // default white if no status
+  switch (durum.toLowerCase()) {
+    case "olumlu":
+      return "#008000"; // green
+    case "orta":
+      return "#FFA500"; // orange
+    case "olumsuz":
+      return "#FF0000"; // red
+    default:
+      return "#ffffff";
+  }
+}
+
 const sortOptionsData = [
   { value: "createdAsc", label: "Eklenme tarihine göre (eskiden yeniye)" },
   { value: "createdDesc", label: "Eklenme tarihine göre (yeniden eskiye)" },
@@ -45,18 +60,16 @@ export default function PdfGenerator({
   // 4 (if yes): Select sorting option from list
   const [step, setStep] = useState(1);
   const [userOption, setUserOption] = useState<"user" | "all">("user");
-  const [callOption, setCallOption] = useState<
-    "cevapsizlar" | "cevaplılar" | "hepsi"
-  >("hepsi");
+  const [callOption, setCallOption] = useState<"cevapsizlar" | "cevaplılar" | "hepsi">("hepsi");
   const [sortingWanted, setSortingWanted] = useState<boolean | null>(null);
   const [selectedSortOption, setSelectedSortOption] = useState<string>("");
 
-  // For the jade–green selection style for yes/no buttons:
+  // For the yes/no button styles:
   const baseBtnClasses = "rounded-full border px-4 py-2 transition-colors";
   const unselectedBtnClasses = "bg-transparent border-gray-400 text-gray-700";
   const selectedBtnClasses = "bg-green-500 border-green-500 text-white";
 
-  // Handlers for navigation
+  // Navigation handlers
   const goNext = () => setStep((s) => s + 1);
   const goBack = () => setStep((s) => (s > 1 ? s - 1 : s));
 
@@ -124,10 +137,19 @@ export default function PdfGenerator({
         { text: title, style: "header" },
         {
           table: {
-            // Adjusted widths to accommodate the new column and reduce "İsim" and "Arayan" widths:
-            widths: [30, 70, "*", 50, 70, 50, "*", 70],
+            // Adjust widths:
+            // Column 0: Sıra (30)
+            // Column 1: İsim (70) with colored bullet
+            // Column 2: E-posta (80) - reduced width
+            // Column 3: Telefon (50)
+            // Column 4: Adres (70)
+            // Column 5: İlgilendiği daire (50)
+            // Column 6: Kanal (50)
+            // Column 7: Açıklama (*) flexible
+            // Column 8: Arayan (70)
+            widths: [30, 70, 80, 50, 70, 50, 50, "*", 70],
             body: [
-              // Updated header row with "İlgilendiği daire" inserted before "Açıklama":
+              // Updated header row with new "Kanal" column inserted before "Açıklama":
               [
                 "Sıra",
                 "İsim",
@@ -135,16 +157,32 @@ export default function PdfGenerator({
                 "Telefon",
                 "Adres",
                 "İlgilendiği daire",
+                "Kanal",
                 "Açıklama",
                 "Arayan",
               ],
               ...reportData.map((customer, index) => [
                 index + 1,
-                customer.name || "",
+                {
+                  // Use a colored bullet instead of canvas ellipse
+                  columns: [
+                    {
+                      text: customer.durum ? "●" : "",
+                      color: customer.durum ? getStatusColor(customer.durum) : undefined,
+                      fontSize: 10,
+                      width: 10,
+                    },
+                    {
+                      text: customer.name || "",
+                      margin: [5, 0, 0, 0],
+                    },
+                  ],
+                },
                 customer.email || "",
                 customer.phone || "",
                 customer.address || "",
                 customer.interested || "",
+                customer.channel || "",
                 customer.description || "",
                 customer.ownerName || "",
               ]),
@@ -182,9 +220,7 @@ export default function PdfGenerator({
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold">
-              1) Müşteri Seçeneğini Belirleyin
-            </h2>
+            <h2 className="text-xl font-bold">1) Müşteri Seçeneğini Belirleyin</h2>
             <div className="flex flex-col space-y-4">
               <button
                 onClick={() => setUserOption("user")}
@@ -224,9 +260,7 @@ export default function PdfGenerator({
               <button onClick={goBack} className="text-2xl">
                 <FiArrowLeft />
               </button>
-              <h2 className="text-xl font-bold">
-                2) Müşteri Alt Kümesini Seçin
-              </h2>
+              <h2 className="text-xl font-bold">2) Müşteri Alt Kümesini Seçin</h2>
             </div>
             <div className="flex flex-col space-y-4">
               <button
@@ -299,7 +333,6 @@ export default function PdfGenerator({
                 <button
                   onClick={() => {
                     setSortingWanted(false);
-                    // Directly finish flow when "Hayır" is clicked (no sorting)
                     finishFlow();
                   }}
                   className={`${baseBtnClasses} ${
@@ -315,16 +348,13 @@ export default function PdfGenerator({
           </div>
         );
       case 4:
-        // This step is only reached if sortingWanted === true.
         return (
           <div className="space-y-6">
             <div className="flex items-center space-x-2">
               <button onClick={goBack} className="text-2xl">
                 <FiArrowLeft />
               </button>
-              <h2 className="text-xl font-bold">
-                4) Sıralama Seçeneğini Belirleyin
-              </h2>
+              <h2 className="text-xl font-bold">4) Sıralama Seçeneğini Belirleyin</h2>
             </div>
             <div className="flex flex-col space-y-4">
               {sortOptionsData.map((opt) => (

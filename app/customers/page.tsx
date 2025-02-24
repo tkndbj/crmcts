@@ -854,7 +854,7 @@ function CustomersPageContent() {
                                     customer.durum.toLowerCase() === "olumlu"
                                       ? "green"
                                       : customer.durum.toLowerCase() === "orta"
-                                      ? "yellow"
+                                      ? "orange"
                                       : customer.durum.toLowerCase() === "olumsuz"
                                       ? "red"
                                       : "transparent",
