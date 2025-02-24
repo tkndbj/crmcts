@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getFirestore,
   doc,
@@ -9,7 +10,6 @@ import {
   Timestamp,
   deleteField,
 } from "firebase/firestore";
-import { useSearchParams } from "next/navigation";
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
 import "../globals.css";
@@ -60,7 +60,8 @@ function isOwner(customer: Customer) {
   return user && customer.owner === user.uid;
 }
 
-export default function CustomerProfilePage() {
+function CustomerProfileContent() {
+  const router = useRouter(); // Initialize router here
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -337,7 +338,10 @@ export default function CustomerProfilePage() {
       {editModalOpen && (
         <CustomerFormModal
           isOpen={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
+          onClose={() => {
+            setEditModalOpen(false);
+            setCustomer(null);
+          }}
           onSubmit={handleSaveCustomer}
           form={form}
           setForm={setForm}
@@ -375,8 +379,18 @@ export default function CustomerProfilePage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md relative"
             >
+              {/* "Profile git" button on top right of the reminder modal */}
+              <button
+                onClick={() => {
+                  router.push(`/customerprofile?id=${customer.id}`);
+                  setReminderModalOpen(false);
+                }}
+                className="absolute top-4 right-4 bg-transparent border border-gray-500 dark:border-gray-300 rounded-full px-3 py-1 text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Profile git
+              </button>
               <h2 className="text-xl font-bold mb-4 text-black dark:text-white">
                 {reminderModalMode === "new"
                   ? `${customer.name} için Hatırlatma Ayarla`
@@ -455,7 +469,6 @@ export default function CustomerProfilePage() {
                       <button
                         type="button"
                         onClick={() => {
-                          // Optional deletion logic can be added here.
                           setReminderModalOpen(false);
                         }}
                         className="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition-colors text-black dark:text-white"
@@ -480,5 +493,13 @@ export default function CustomerProfilePage() {
         </AnimatePresence>
       )}
     </div>
+  );
+}
+
+export default function CustomerProfilePage() {
+  return (
+    <Suspense fallback={<div>Yükleniyor...</div>}>
+      <CustomerProfileContent />
+    </Suspense>
   );
 }
