@@ -77,6 +77,20 @@ function isOwner(customer: any) {
   return user && customer.owner === user.uid;
 }
 
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  lastCallDate: string;
+  description: string;
+  interested: string;
+  channel: string;
+  durum: string;
+  callStatus: "cevapAlindi" | "cevapsiz";
+  missedCall: boolean;
+}
+
 export default function CustomersPage() {
   return (
     <>
@@ -95,7 +109,7 @@ function CustomersPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     name: "",
     email: "",
     phone: "",
@@ -105,8 +119,8 @@ function CustomersPageContent() {
     interested: "",
     channel: "",
     durum: "",
-    callStatus: "cevapAlındı", // "cevapAlındı" (default) or "cevapsiz"
-    missedCall: false,       // false when "cevapAlındı", true when "cevapsiz"
+    callStatus: "cevapAlindi", // Now this is correctly typed
+    missedCall: false,
   });
   const [tooltipCustomerId, setTooltipCustomerId] = useState<string | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -223,7 +237,7 @@ function CustomersPageContent() {
     setError(null);
 
     // In "Cevap Alındı" mode, channel and durum are compulsory.
-    if (form.callStatus === "cevapAlındı") {
+    if (form.callStatus === "cevapAlindi") {
       if (!form.channel.trim() || !form.durum.trim()) {
         setError("Kanal ve Durum alanları zorunludur.");
         setLoading(false);
@@ -251,7 +265,7 @@ function CustomersPageContent() {
             createdAt: new Date().toISOString(),
           });
         } else {
-          // In "cevapAlındı" mode, include all fields.
+          // In "cevapAlindi" mode, include all fields.
           await addDoc(collection(firestore, "customers"), {
             name: form.name,
             email: form.email,
@@ -303,7 +317,7 @@ function CustomersPageContent() {
         interested: "",
         channel: "",
         durum: "",
-        callStatus: "cevapAlındı",
+        callStatus: "cevapAlindi",
         missedCall: false,
       });
       setSelectedCustomer(null);
@@ -328,7 +342,7 @@ function CustomersPageContent() {
       interested: customer.interested || "",
       channel: customer.channel || "",
       durum: customer.durum || "",
-      callStatus: customer.missedCall ? "cevapsiz" : "cevapAlındı",
+      callStatus: customer.missedCall ? "cevapsiz" : "cevapAlindi",
       missedCall: customer.missedCall || false,
     });
     setModalOpen(true);
@@ -753,7 +767,7 @@ function CustomersPageContent() {
                     interested: "",
                     channel: "",
                     durum: "",
-                    callStatus: "cevapAlındı",
+                    callStatus: "cevapAlindi",
                     missedCall: false,
                   });
                   setModalOpen(true);

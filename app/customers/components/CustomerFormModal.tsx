@@ -17,7 +17,7 @@ interface CustomerFormModalProps {
     interested: string; // New field
     channel: string; // New Field: Kanal
     durum: string; // New Field: Durum
-    callStatus: "cevapAlındı" | "cevapsiz"; // NEW: Mode selection
+    callStatus: "cevapAlindi" | "cevapsiz"; // NEW: Mode selection
     missedCall: boolean; // NEW: Based on mode
   };
   setForm: React.Dispatch<
@@ -31,7 +31,7 @@ interface CustomerFormModalProps {
       interested: string; // New field
       channel: string; // New Field: Kanal
       durum: string; // New Field: Durum
-      callStatus: "cevapAlındı" | "cevapsiz"; // NEW: Mode selection
+      callStatus: "cevapAlindi" | "cevapsiz"; // NEW: Mode selection
       missedCall: boolean; // NEW: Based on mode
     }>
   >;
@@ -93,10 +93,10 @@ export default function CustomerFormModal({
               <button
                 type="button"
                 onClick={() =>
-                  setForm({ ...form, callStatus: "cevapAlındı", missedCall: false })
+                  setForm({ ...form, callStatus: "cevapAlindi", missedCall: false })
                 }
                 className={`px-4 py-2 border rounded-full transition-colors ${
-                  form.callStatus === "cevapAlındı"
+                  form.callStatus === "cevapAlindi"
                     ? "bg-[#00A86B] text-white"
                     : "bg-transparent text-gray-700 dark:text-gray-300"
                 }`}
@@ -119,7 +119,7 @@ export default function CustomerFormModal({
             </div>
             <form onSubmit={onSubmit} className="space-y-4">
               {/* Render fields conditionally based on callStatus */}
-              {form.callStatus === "cevapAlındı" && (
+              {form.callStatus === "cevapAlindi" && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -161,7 +161,7 @@ export default function CustomerFormModal({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
-              {form.callStatus === "cevapAlındı" && (
+              {form.callStatus === "cevapAlindi" && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -192,7 +192,7 @@ export default function CustomerFormModal({
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {form.callStatus === "cevapAlındı"
+                  {form.callStatus === "cevapAlindi"
                     ? "Arama Tarihi"
                     : "Son Arama Tarihi"}
                 </label>
@@ -206,7 +206,7 @@ export default function CustomerFormModal({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
-              {form.callStatus === "cevapAlındı" && (
+              {form.callStatus === "cevapAlindi" && (
                 <>
                   {/* Kanal Field */}
                   <div>
