@@ -1,10 +1,11 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import "./globals.css";
 
-// Import the AuthLayout and our new NotificationsBell component
 import AuthLayout from "./AuthLayout";
 import NotificationsBell from "./components/NotificationsBell";
+import GlobalReminder from "./components/GlobalReminder";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -27,10 +28,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${figtree.className} antialiased overflow-x-hidden`}>
-        {/* We wrap children in a separate client component */}
         <AuthLayout>
           {children}
           <NotificationsBell />
+          <GlobalReminder />
         </AuthLayout>
       </body>
     </html>

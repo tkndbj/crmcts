@@ -44,7 +44,7 @@ export default function CustomerInfoModal({
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
           >
             <button
-              onClick={() => router.push(`/dynamiccustomer?id=${customer.id}`)}
+              onClick={() => router.push(`/customerprofile?id=${customer.id}`)}
               className="absolute top-4 right-4"
             >
               <FiUser size={24} className="text-blue-500" />
@@ -94,7 +94,7 @@ export default function CustomerInfoModal({
                 )}
                 {customer.description && (
                   <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-gray-300 mt-2">
-                     {customer.description}
+                    {customer.description}
                   </div>
                 )}
                 {customer.channel && (

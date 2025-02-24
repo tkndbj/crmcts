@@ -156,8 +156,7 @@ function CustomersPageContent() {
     cevapsizlar: "",
   });
   // --- New Reminder state ---
-  const [liveReminderModalOpen, setLiveReminderModalOpen] = useState(false);
-  const [liveReminderMessage, setLiveReminderMessage] = useState("");
+
   const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const [reminderCustomer, setReminderCustomer] = useState<any>(null);
   const [reminderDelay, setReminderDelay] = useState("");
@@ -468,24 +467,6 @@ function CustomersPageContent() {
       reminderTimestamp: Timestamp.fromDate(targetTime),
       reminderDescription: reminderAciklama,
     });
-    const delayMs = targetTime.getTime() - Date.now();
-    setTimeout(async () => {
-      await addDoc(collection(firestore, "notifications"), {
-        user: auth.currentUser?.uid,
-        customerId: reminderCustomer.id,
-        message: `Hatırlatma: ${reminderCustomer.name}${
-          reminderAciklama ? " - Açıklama: " + reminderAciklama : ""
-        }`,
-        createdAt: new Date().toISOString(),
-        unread: true,
-      });
-      setLiveReminderMessage(
-        `Hatırlatma: ${reminderCustomer.name}${
-          reminderAciklama ? " - Açıklama: " + reminderAciklama : ""
-        }`
-      );
-      setLiveReminderModalOpen(true);
-    }, delayMs);
     setReminderModalOpen(false);
     setReminderAciklama("");
     setReminderDelay("");
@@ -1188,15 +1169,6 @@ function CustomersPageContent() {
               </motion.div>
             </motion.div>
           </AnimatePresence>
-        )}
-
-        {/* Live Reminder Modal */}
-        {liveReminderModalOpen && (
-          <ReminderModal
-            isOpen={liveReminderModalOpen}
-            onClose={() => setLiveReminderModalOpen(false)}
-            message={liveReminderMessage}
-          />
         )}
       </div>
     </>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FiBell } from "react-icons/fi";
 import {
   getFirestore,
@@ -18,6 +18,7 @@ import firebaseApp from "../../firebaseClient";
 
 const NotificationsBell = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +111,6 @@ const NotificationsBell = () => {
     return date.toLocaleString();
   };
 
-  // Instead of returning early, conditionally render the UI.
   return (
     <>
       {pathname !== "/" && (
@@ -133,7 +133,15 @@ const NotificationsBell = () => {
               {notifications.length > 0 ? (
                 <ul className="max-h-60 overflow-y-auto">
                   {notifications.map((notif) => (
-                    <li key={notif.id} className="mb-2 border-b pb-1">
+                    <li
+                      key={notif.id}
+                      className="mb-2 border-b pb-1 cursor-pointer"
+                      onClick={() => {
+                        // Navigate to the customer profile page.
+                        router.push(`/customerprofile?id=${notif.customerId}`);
+                        setOpen(false);
+                      }}
+                    >
                       <p className="text-sm">{notif.message}</p>
                       <p className="text-xs text-gray-500">
                         {formatDate(notif.createdAt)}
