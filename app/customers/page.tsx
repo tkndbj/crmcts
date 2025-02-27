@@ -473,9 +473,12 @@ function CustomersPageContent() {
         const reminderDate = new Date(
           customer.reminderTimestamp.seconds * 1000
         );
+        // Adjust to local time by subtracting the timezone offset
+        const offset = reminderDate.getTimezoneOffset() * 60000;
+        const localDate = new Date(reminderDate.getTime() - offset);
         // Format for datetime-local input: "YYYY-MM-DDTHH:MM"
-        const dtLocal = reminderDate.toISOString().substring(0, 16);
-        setReminderUnit("days");
+        const dtLocal = localDate.toISOString().slice(0, 16);
+        setReminderUnit("days"); // (optional: adjust this if you want to preserve the original unit)
         setReminderDateTime(dtLocal);
       }
       setReminderAciklama(customer.reminderDescription || "");

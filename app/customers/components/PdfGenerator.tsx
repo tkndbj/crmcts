@@ -23,6 +23,14 @@ function parseDateStr(dateStr: string) {
   return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
 }
 
+function isSameDay(date1: Date, date2: Date) {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
+
 // getStatusColor now returns hex codes for our colors.
 function getStatusColor(durum: string) {
   if (!durum) return "#ffffff"; // default white if no status
@@ -54,13 +62,28 @@ export default function PdfGenerator({
   onClose,
 }: PdfGeneratorProps) {
   // Steps:
+  // 0: Select date filter ("Tarih Seç")
   // 1: Select user option ("user" or "all")
   // 2: Select call option ("cevapsizlar", "cevaplılar", "hepsi")
   // 3: (Conditional) Select durum filter ("olumlu", "olumsuz", "orta", "hepsi")
-  //    – shown if callOption !== "cevapsizlar" (i.e. if "cevaplılar" or "hepsi" is chosen)
   // 4: Ask if sorting is desired ("evet" or "hayır")
   // 5 (if yes): Select sorting option from list
-  const [step, setStep] = useState(1);
+
+  const [step, setStep] = useState(0);
+
+  // New state for date filter selection
+  type DateOption =
+    | "hepsi"
+    | "bugunun"
+    | "dunun"
+    | "buHaftanin"
+    | "tarihBelirle";
+
+  const [dateFilterOption, setDateFilterOption] =
+    useState<DateOption>("bugunun");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+
   const [userOption, setUserOption] = useState<"user" | "all">("user");
   const [callOption, setCallOption] = useState<
     "cevapsizlar" | "cevaplılar" | "hepsi"
@@ -79,11 +102,51 @@ export default function PdfGenerator({
 
   // Navigation handlers
   const goNext = () => setStep((s) => s + 1);
-  const goBack = () => setStep((s) => (s > 1 ? s - 1 : s));
+  const goBack = () => setStep((s) => (s > 0 ? s - 1 : s));
 
   const generatePdf = () => {
     // Start with all customers
     let reportData = [...customers];
+
+    // Date filtering based on new step
+    const now = new Date();
+    if (dateFilterOption === "bugunun") {
+      reportData = reportData.filter((c) => {
+        const created = new Date(c.createdAt);
+        return isSameDay(created, now);
+      });
+    } else if (dateFilterOption === "dunun") {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      reportData = reportData.filter((c) => {
+        const created = new Date(c.createdAt);
+        return isSameDay(created, yesterday);
+      });
+    } else if (dateFilterOption === "buHaftanin") {
+      // Calculate the most recent Monday (if today is Monday, it is today)
+      const diff = (now.getDay() + 6) % 7; // converts Sunday (0) to 6, Monday (1) to 0, etc.
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - diff);
+      // Set time to start of the day
+      monday.setHours(0, 0, 0, 0);
+      reportData = reportData.filter((c) => {
+        const created = new Date(c.createdAt);
+        return created >= monday && created <= now;
+      });
+    } else if (dateFilterOption === "tarihBelirle") {
+      // If custom dates are set, filter accordingly
+      if (customStartDate && customEndDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        reportData = reportData.filter((c) => {
+          const created = new Date(c.createdAt);
+          return created >= start && created <= end;
+        });
+      }
+    }
+
     // Step 1: Filter by user option if "user"
     if (userOption === "user" && currentUser) {
       reportData = reportData.filter((c) => c.owner === currentUser.uid);
@@ -243,6 +306,101 @@ export default function PdfGenerator({
   // Render different UI per step.
   const renderStep = () => {
     switch (step) {
+      case 0:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold dark:text-white">0) Tarih Seç</h2>
+            <div className="flex flex-col space-y-4">
+              <button
+                onClick={() => setDateFilterOption("hepsi")}
+                className={`px-4 py-2 border rounded ${
+                  dateFilterOption === "hepsi"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Hepsi
+              </button>
+
+              <button
+                onClick={() => setDateFilterOption("bugunun")}
+                className={`px-4 py-2 border rounded ${
+                  dateFilterOption === "bugunun"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Bugünün
+              </button>
+              <button
+                onClick={() => setDateFilterOption("dunun")}
+                className={`px-4 py-2 border rounded ${
+                  dateFilterOption === "dunun"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Dünün
+              </button>
+              <button
+                onClick={() => setDateFilterOption("buHaftanin")}
+                className={`px-4 py-2 border rounded ${
+                  dateFilterOption === "buHaftanin"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Bu haftanın
+              </button>
+              <button
+                onClick={() => setDateFilterOption("tarihBelirle")}
+                className={`px-4 py-2 border rounded ${
+                  dateFilterOption === "tarihBelirle"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                Tarih belirle
+              </button>
+            </div>
+            {dateFilterOption === "tarihBelirle" && (
+              <div className="flex flex-col space-y-4">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-4 py-2 border rounded"
+                  placeholder="Başlangıç Tarihi"
+                />
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-4 py-2 border rounded"
+                  placeholder="Bitiş Tarihi"
+                />
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  // If "Tarih belirle" is selected, require both dates
+                  if (
+                    dateFilterOption === "tarihBelirle" &&
+                    (!customStartDate || !customEndDate)
+                  ) {
+                    alert("Lütfen başlangıç ve bitiş tarihlerini seçin.");
+                    return;
+                  }
+                  goNext();
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                Devam &gt;
+              </button>
+            </div>
+          </div>
+        );
       case 1:
         return (
           <div className="space-y-6">
