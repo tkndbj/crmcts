@@ -11,6 +11,10 @@ import {
   doc,
   Timestamp,
   deleteField,
+  getDocs,
+  query,
+  where,
+  arrayUnion,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import firebaseApp from "../../firebaseClient";
@@ -27,6 +31,7 @@ import {
   FiBell,
   FiCalendar,
   FiPieChart,
+  FiUserPlus,
 } from "react-icons/fi";
 
 // ----- pdfmake setup -----
@@ -156,7 +161,6 @@ function CustomersPageContent() {
     cevapsizlar: "",
   });
   // --- New Reminder state ---
-
   const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const [reminderCustomer, setReminderCustomer] = useState<any>(null);
   const [reminderDelay, setReminderDelay] = useState("");
@@ -170,16 +174,30 @@ function CustomersPageContent() {
     "new"
   );
 
+  // NEW: State for call date modal functionality
+  const [callDateModalOpen, setCallDateModalOpen] = useState(false);
+  const [newCallDateValue, setNewCallDateValue] = useState("");
+  const [selectedCallDateCustomer, setSelectedCallDateCustomer] =
+    useState<any>(null);
+
   // NEW: State for owner filter dropdown in the table header
   const [ownerFilter, setOwnerFilter] = useState("Genel");
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
+  // NEW: State for "Müşteri" column durum filter dropdown
+  const [showDurumDropdown, setShowDurumDropdown] = useState(false);
+  const [durumFilter, setDurumFilter] = useState("");
+
   // NEW: State for calendar filter
   const [filterDate, setFilterDate] = useState("");
-  // Removed showCalendar state since it's no longer needed
-
   // NEW: Ref for the hidden calendar input
   const calendarInputRef = useRef<HTMLInputElement>(null);
+
+  // NEW: State for assign user functionality
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [assignUserModalOpen, setAssignUserModalOpen] = useState(false);
+  const [selectedCustomerForAssign, setSelectedCustomerForAssign] =
+    useState<any>(null);
 
   // --- Fetch customers ---
   useEffect(() => {
@@ -205,6 +223,25 @@ function CustomersPageContent() {
     return () => unsubscribe();
   }, []);
 
+  // --- Fetch all users for assignment ---
+  useEffect(() => {
+    const usersRef = collection(firestore, "users");
+    const unsubscribeUsers = onSnapshot(
+      usersRef,
+      (snapshot) => {
+        const usersData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAllUsers(usersData);
+      },
+      (err) => {
+        console.error(err);
+      }
+    );
+    return () => unsubscribeUsers();
+  }, []);
+
   // --- Outside tooltip listener ---
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -225,10 +262,16 @@ function CustomersPageContent() {
   }, [tooltipCustomerId]);
 
   // --- Handlers ---
+
+  // Modified to sanitize phone input (allow only digits)
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.name === "phone") {
+      value = value.replace(/\D/g, ""); // remove non-digit characters
+    }
+    setForm({ ...form, [e.target.name]: value });
   };
 
   const handleLastCallDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,6 +303,15 @@ function CustomersPageContent() {
         return;
       }
       if (!selectedCustomer) {
+        // Duplicate phone check for new customer
+        const customersRef = collection(firestore, "customers");
+        const q = query(customersRef, where("phone", "==", form.phone));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setError("Bu telefon numarası zaten mevcut.");
+          setLoading(false);
+          return;
+        }
         if (form.callStatus === "cevapsiz") {
           // In "cevapsiz" mode, only phone and lastCallDate are used, and missedCall is true.
           await addDoc(collection(firestore, "customers"), {
@@ -373,17 +425,6 @@ function CustomersPageContent() {
     setCustomerInfoModalOpen(true);
   };
 
-  const handleEmailIconClick = (customer: any) => {
-    if (!document.cookie.includes("google-authenticated=true")) {
-      window.location.href = "/api/auth/google";
-      return;
-    }
-    setSelectedEmailCustomer(customer);
-    setEmailSubject("");
-    setEmailMessage("");
-    setEmailModalOpen(true);
-  };
-
   const handleSendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEmailError(null);
@@ -488,11 +529,11 @@ function CustomersPageContent() {
   };
 
   // Modified filtering:
-  // - "genel": only customers with missedCall === false.
+  // - "genel": now includes all customers (both with missedCall true and false).
   // - "cevapsizlar": only customers with missedCall === true.
   const filteredCustomers =
     activeTab === "genel"
-      ? customers.filter((customer) => customer.missedCall === false)
+      ? customers
       : activeTab === "kendi"
       ? customers.filter((customer) => {
           const user = auth.currentUser;
@@ -539,10 +580,14 @@ function CustomersPageContent() {
         );
         break;
       case "nameAsc":
-        sortedCustomers.sort((a, b) => a.name.localeCompare(b.name));
+        sortedCustomers.sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "")
+        );
         break;
       case "nameDesc":
-        sortedCustomers.sort((a, b) => b.name.localeCompare(a.name));
+        sortedCustomers.sort((a, b) =>
+          (b.name || "").localeCompare(a.name || "")
+        );
         break;
       case "lastCallAsc":
         sortedCustomers.sort(
@@ -580,6 +625,14 @@ function CustomersPageContent() {
     });
   }
 
+  // Apply durum filter if set (from Müşteri header dropdown)
+  if (durumFilter) {
+    sortedCustomers = sortedCustomers.filter(
+      (customer) =>
+        (customer.durum || "").toLowerCase() === durumFilter.toLowerCase()
+    );
+  }
+
   const handleOpenUpdateCallModal = (customer: any) => {
     setSelectedCallCustomer(customer);
     setNewCallDate("");
@@ -604,6 +657,28 @@ function CustomersPageContent() {
   const handleSelectSortOption = (option: string) => {
     setSortOptions({ ...sortOptions, [activeTab]: option });
     setSortModalOpen(false);
+  };
+
+  // New: Handle assigning a customer to a selected user.
+  const handleAssignUser = async (selectedUser: any) => {
+    if (!selectedCustomerForAssign) return;
+    try {
+      await updateDoc(
+        doc(firestore, "customers", selectedCustomerForAssign.id),
+        {
+          ownerName:
+            selectedUser.name ||
+            selectedUser.displayName ||
+            selectedUser.email ||
+            "Bilinmiyor",
+          owner: selectedUser.id,
+        }
+      );
+      setAssignUserModalOpen(false);
+      setSelectedCustomerForAssign(null);
+    } catch (error: any) {
+      console.error("Müşteri ataması yapılırken hata:", error);
+    }
   };
 
   // Compute unique owner names for dropdown (including "Genel")
@@ -816,11 +891,58 @@ function CustomersPageContent() {
                         </div>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white relative cursor-pointer"
+                      onClick={() => setShowDurumDropdown(!showDurumDropdown)}
+                    >
                       Müşteri
+                      {showDurumDropdown && (
+                        <div className="absolute left-0 mt-2 w-32 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDurumFilter("Olumlu");
+                              setShowDurumDropdown(false);
+                            }}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                          >
+                            Olumlu
+                          </div>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDurumFilter("Olumsuz");
+                              setShowDurumDropdown(false);
+                            }}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                          >
+                            Olumsuz
+                          </div>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDurumFilter("Orta");
+                              setShowDurumDropdown(false);
+                            }}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                          >
+                            Orta
+                          </div>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDurumFilter("");
+                              setShowDurumDropdown(false);
+                            }}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                          >
+                            Tüm
+                          </div>
+                        </div>
+                      )}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
-                      E-posta
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white w-12">
+                      Eposta
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
                       Telefon
@@ -839,17 +961,18 @@ function CustomersPageContent() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {sortedCustomers.length > 0 ? (
                     sortedCustomers.map((customer) => {
-                      // Determine text class: if on "Kendi Müşterilerim" and missedCall then force black text.
-                      const cellTextClass =
-                        activeTab === "kendi" && customer.missedCall
-                          ? "text-black"
-                          : "text-black dark:text-white";
+                      const isYellowRow =
+                        (activeTab === "genel" || activeTab === "kendi") &&
+                        customer.missedCall;
+                      const cellTextClass = isYellowRow
+                        ? "text-black"
+                        : "text-black dark:text-white";
                       return (
-                        // For "Kendi Müşterilerim" tab, highlight the row if missedCall is true
                         <tr
                           key={customer.id}
                           className={`whitespace-nowrap ${
-                            activeTab === "kendi" && customer.missedCall
+                            (activeTab === "genel" || activeTab === "kendi") &&
+                            customer.missedCall
                               ? "bg-yellow-100"
                               : ""
                           }`}
@@ -884,19 +1007,14 @@ function CustomersPageContent() {
                             </span>
                           </td>
                           <td
-                            className={`px-4 py-2 text-sm ${cellTextClass} flex items-center space-x-2`}
+                            className={`px-4 py-2 text-sm ${cellTextClass} flex items-center justify-center w-12`}
                           >
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEmailIconClick(customer);
-                              }}
-                              title="E-posta Gönder"
-                              className="hover:text-black dark:hover:text-white transition-colors"
+                              title={customer.email || ""}
+                              className="cursor-default hover:text-black dark:hover:text-black transition-colors"
                             >
                               <FiMail size={20} />
                             </button>
-                            <span>{customer.email}</span>
                           </td>
                           <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
                             {customer.phone}
@@ -959,6 +1077,28 @@ function CustomersPageContent() {
                                           : "text-black dark:text-white"
                                       }
                                     />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCustomerForAssign(customer);
+                                      setAssignUserModalOpen(true);
+                                    }}
+                                    title="Müşteriyi Delege Et"
+                                    className="hover:text-black dark:hover:text-white transition-colors"
+                                  >
+                                    <FiUserPlus size={20} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCallDateCustomer(customer);
+                                      setCallDateModalOpen(true);
+                                    }}
+                                    title="Yeni Arama Tarihi Ekle"
+                                    className="hover:text-black dark:hover:text-white transition-colors"
+                                  >
+                                    <FiPhone size={20} />
                                   </button>
                                 </>
                               )}
@@ -1165,6 +1305,133 @@ function CustomersPageContent() {
                       </button>
                     )}
                   </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {callDateModalOpen && (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 bg-black"
+                onClick={() => setCallDateModalOpen(false)}
+              ></motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
+              >
+                <h2 className="text-xl font-bold mb-4 text-black dark:text-white">
+                  Yeni Arama Tarihi Ekle
+                </h2>
+                <input
+                  type="date"
+                  value={newCallDateValue}
+                  onChange={(e) => setNewCallDateValue(e.target.value)}
+                  className="w-full border rounded px-3 py-2 mb-4"
+                />
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setCallDateModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 text-black dark:text-white"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!selectedCallDateCustomer || !newCallDateValue)
+                        return;
+                      try {
+                        const customerRef = doc(
+                          firestore,
+                          "customers",
+                          selectedCallDateCustomer.id
+                        );
+                        // Use arrayUnion to add the new call date to the "callDates" array field.
+                        await updateDoc(customerRef, {
+                          callDates: arrayUnion(newCallDateValue),
+                        });
+                        setCallDateModalOpen(false);
+                        setNewCallDateValue("");
+                        setSelectedCallDateCustomer(null);
+                      } catch (error) {
+                        console.error("Arama tarihi eklenirken hata:", error);
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors text-black dark:text-white"
+                  >
+                    Ekle
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* Assign User Modal */}
+        {assignUserModalOpen && (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 bg-black"
+                onClick={() => setAssignUserModalOpen(false)}
+              ></motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 z-10 w-full max-w-md"
+              >
+                <h2 className="text-xl font-bold mb-4 text-black dark:text-white">
+                  Kullanıcı Seçin
+                </h2>
+                <div className="space-y-4">
+                  {allUsers.length > 0 ? (
+                    allUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        onClick={() => handleAssignUser(user)}
+                        className="cursor-pointer px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                      >
+                        {user.name || user.displayName || user.email}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-black dark:text-white">
+                      Kullanıcı bulunamadı.
+                    </p>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => setAssignUserModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500 text-black dark:text-white"
+                  >
+                    Kapat
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

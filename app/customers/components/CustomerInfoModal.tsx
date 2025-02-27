@@ -61,7 +61,7 @@ export default function CustomerInfoModal({
                 </p>
                 {customer.lastCallDate && (
                   <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Son Arama Tarihi:</strong> {customer.lastCallDate}
+                    <strong>İlk Arama Tarihi:</strong> {customer.lastCallDate}
                   </p>
                 )}
               </>
@@ -89,11 +89,23 @@ export default function CustomerInfoModal({
                 )}
                 {customer.lastCallDate && (
                   <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Son Arama Tarihi:</strong> {customer.lastCallDate}
+                    <strong>İlk Arama Tarihi:</strong> {customer.lastCallDate}
                   </p>
                 )}
+                {customer.callDates && customer.callDates.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-gray-700 dark:text-white">
+                      <strong>Tekrardan Arama Tarihleri:</strong>
+                    </p>
+                    <ul className="list-disc ml-4 text-emerald-500">
+                      {customer.callDates.map((date: string, index: number) => (
+                        <li key={index}>{date}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {customer.description && (
-                  <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-gray-300 mt-2">
+                  <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-black mt-2">
                     {customer.description}
                   </div>
                 )}

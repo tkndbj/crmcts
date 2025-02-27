@@ -193,6 +193,8 @@ export default function CustomerFormModal({
                   value={form.phone}
                   onChange={handleInputChange}
                   required
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
