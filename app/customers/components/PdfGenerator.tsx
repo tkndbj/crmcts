@@ -116,10 +116,10 @@ export default function PdfGenerator({
           );
           break;
         case "nameAsc":
-          reportData.sort((a, b) => a.name.localeCompare(b.name));
+          reportData.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
           break;
         case "nameDesc":
-          reportData.sort((a, b) => b.name.localeCompare(a.name));
+          reportData.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
           break;
         case "lastCallAsc":
           reportData.sort(
@@ -151,8 +151,10 @@ export default function PdfGenerator({
         { text: title, style: "header" },
         {
           table: {
-            widths: [30, 70, 80, 50, 70, 50, 50, "*", 70],
+            // Updated widths for 10 columns:
+            widths: [30, 70, 80, 50, 70, 50, 50, 60, "*", 70],
             body: [
+              // New header row with "Aranma" column added before "Açıklama"
               [
                 "Sıra",
                 "İsim",
@@ -161,35 +163,55 @@ export default function PdfGenerator({
                 "Adres",
                 "İlgilendiği daire",
                 "Kanal",
+                "Aranma",
                 "Açıklama",
                 "Arayan",
               ],
-              ...reportData.map((customer, index) => [
-                index + 1,
-                {
-                  columns: [
-                    {
-                      text: customer.durum ? "●" : "",
-                      color: customer.durum
-                        ? getStatusColor(customer.durum)
-                        : undefined,
-                      fontSize: 10,
-                      width: 10,
-                    },
-                    {
-                      text: customer.name || "",
-                      margin: [5, 0, 0, 0],
-                    },
-                  ],
-                },
-                customer.email || "",
-                customer.phone || "",
-                customer.address || "",
-                customer.interested || "",
-                customer.channel || "",
-                customer.description || "",
-                customer.ownerName || "",
-              ]),
+              ...reportData.map((customer, index) => {
+                const aranmaText =
+                  (customer.lastCallDate || "") +
+                  (customer.callDates && customer.callDates.length > 0
+                    ? "\n" + customer.callDates.join("\n")
+                    : "");
+                const row = [
+                  { text: index + 1 },
+                  {
+                    columns: [
+                      {
+                        text: customer.durum ? "●" : "",
+                        color: customer.durum
+                          ? getStatusColor(customer.durum)
+                          : undefined,
+                        fontSize: 10,
+                        width: 10,
+                      },
+                      {
+                        text: customer.name || "",
+                        margin: [5, 0, 0, 0],
+                      },
+                    ],
+                  },
+                  customer.email || "",
+                  customer.phone || "",
+                  customer.address || "",
+                  customer.interested || "",
+                  customer.channel || "",
+                  { text: aranmaText },
+                  customer.description || "",
+                  customer.ownerName || "",
+                ];
+                if (customer.missedCall) {
+                  // Highlight the row by setting fillColor for each cell
+                  return row.map((cell) => {
+                    if (typeof cell === "object") {
+                      return { ...cell, fillColor: "#ffffe0" };
+                    } else {
+                      return { text: cell, fillColor: "#ffffe0" };
+                    }
+                  });
+                }
+                return row;
+              }),
             ],
           },
           layout: {
