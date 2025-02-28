@@ -180,7 +180,21 @@ export default function CustomerFormModal({
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                     />
                   </div>
+                  {/* Add the description field here as well */}
+   <div>
+     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+       Açıklama
+     </label>
+     <textarea
+       name="description"
+       value={form.description}
+       onChange={handleInputChange}
+       rows={3}
+       className="mt-1 block w-full border border-gray-300 ..."
+     ></textarea>
+   </div>
                 </>
+                
               )}
 
               <div>

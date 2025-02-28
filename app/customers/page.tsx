@@ -318,6 +318,7 @@ function CustomersPageContent() {
             phone: form.phone,
             lastCallDate: form.lastCallDate,
             missedCall: true,
+            description: form.description,
             owner: user.uid,
             ownerName: user.displayName || user.email || "Bilinmiyor",
             createdAt: new Date().toISOString(),
@@ -347,6 +348,7 @@ function CustomersPageContent() {
             phone: form.phone,
             lastCallDate: form.lastCallDate,
             missedCall: true,
+            description: form.description,
             updatedAt: new Date().toISOString(),
           });
         } else {
