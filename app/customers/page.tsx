@@ -869,266 +869,263 @@ function CustomersPageContent() {
           </div>
 
           {/* Customers Table */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg mt-4">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer relative text-black dark:text-white"
-                      onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
-                    >
-                      Ekleyen
-                      {showOwnerDropdown && (
-                        <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
-                          {ownersList.map((owner) => (
-                            <div
-                              key={owner}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOwnerFilter(owner);
-                                setShowOwnerDropdown(false);
-                              }}
-                              className={`px-4 py-2 cursor-pointer ${
-                                owner === ownerFilter
-                                  ? "bg-black dark:bg-white text-white dark:text-black"
-                                  : "hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
-                              }`}
-                            >
-                              {owner}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </th>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white relative cursor-pointer"
-                      onClick={() => setShowDurumDropdown(!showDurumDropdown)}
-                    >
-                      Müşteri
-                      {showDurumDropdown && (
-                        <div className="absolute left-0 mt-2 w-32 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDurumFilter("Olumlu");
-                              setShowDurumDropdown(false);
-                            }}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
-                          >
-                            Olumlu
-                          </div>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDurumFilter("Olumsuz");
-                              setShowDurumDropdown(false);
-                            }}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
-                          >
-                            Olumsuz
-                          </div>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDurumFilter("Orta");
-                              setShowDurumDropdown(false);
-                            }}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
-                          >
-                            Orta
-                          </div>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDurumFilter("");
-                              setShowDurumDropdown(false);
-                            }}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
-                          >
-                            Tüm
-                          </div>
-                        </div>
-                      )}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white w-12">
-                      Eposta
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
-                      Telefon
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
-                      Adres
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
-                      İlgilendiği daire
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-black dark:text-white">
-                      İşlemler
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {sortedCustomers.length > 0 ? (
-                    sortedCustomers.map((customer) => {
-                      const isYellowRow =
-                        (activeTab === "genel" || activeTab === "kendi") &&
-                        customer.missedCall;
-                      const cellTextClass = isYellowRow
-                        ? "text-black"
-                        : "text-black dark:text-white";
-                      return (
-                        <tr
-                          key={customer.id}
-                          className={`whitespace-nowrap ${
-                            (activeTab === "genel" || activeTab === "kendi") &&
-                            customer.missedCall
-                              ? "bg-yellow-100"
-                              : ""
-                          }`}
+<div className="bg-white dark:bg-gray-800 shadow rounded-lg mt-4">
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-auto">
+      <thead className="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th
+            className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer relative text-black dark:text-white"
+            onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
+          >
+            Ekleyen
+            {showOwnerDropdown && (
+              <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
+                {ownersList.map((owner) => (
+                  <div
+                    key={owner}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOwnerFilter(owner);
+                      setShowOwnerDropdown(false);
+                    }}
+                    className={`px-4 py-2 cursor-pointer ${
+                      owner === ownerFilter
+                        ? "bg-black dark:bg-white text-white dark:text-black"
+                        : "hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                    }`}
+                  >
+                    {owner}
+                  </div>
+                ))}
+              </div>
+            )}
+          </th>
+          <th
+            className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white relative cursor-pointer"
+            onClick={() => setShowDurumDropdown(!showDurumDropdown)}
+          >
+            Müşteri
+            {showDurumDropdown && (
+              <div className="absolute left-0 mt-2 w-32 bg-white dark:bg-gray-700 border border-gray-300 rounded shadow-lg z-10">
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDurumFilter("Olumlu");
+                    setShowDurumDropdown(false);
+                  }}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                >
+                  Olumlu
+                </div>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDurumFilter("Olumsuz");
+                    setShowDurumDropdown(false);
+                  }}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                >
+                  Olumsuz
+                </div>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDurumFilter("Orta");
+                    setShowDurumDropdown(false);
+                  }}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                >
+                  Orta
+                </div>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDurumFilter("");
+                    setShowDurumDropdown(false);
+                  }}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white"
+                >
+                  Tüm
+                </div>
+              </div>
+            )}
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white w-12">
+            Eposta
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
+            Telefon
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
+            Adres
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-black dark:text-white">
+            İlgilendiği daire
+          </th>
+          <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-black dark:text-white">
+            İşlemler
+          </th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        {sortedCustomers.length > 0 ? (
+          sortedCustomers.map((customer) => {
+            const isYellowRow =
+              (activeTab === "genel" || activeTab === "kendi") &&
+              customer.missedCall;
+            const cellTextClass = isYellowRow
+              ? "text-black"
+              : "text-black dark:text-white";
+            return (
+              <tr
+                key={customer.id}
+                className={`whitespace-nowrap ${
+                  (activeTab === "genel" || activeTab === "kendi") &&
+                  customer.missedCall
+                    ? "bg-yellow-100"
+                    : ""
+                }`}
+                onClick={() => handleCustomerInfo(customer)}
+              >
+                <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                  {customer.ownerName}
+                </td>
+                <td className={`px-4 py-2 text-sm ${cellTextClass} w-32`}>
+                  <div className="flex items-center">
+                    {/* Only show status circle for customers with missedCall === false */}
+                    {!customer.missedCall && customer.durum && (
+                      <span
+                        className="inline-block w-3 h-3 rounded-full mr-1"
+                        style={{
+                          backgroundColor:
+                            customer.durum.toLowerCase() === "olumlu"
+                              ? "green"
+                              : customer.durum.toLowerCase() === "orta"
+                              ? "orange"
+                              : customer.durum.toLowerCase() === "olumsuz"
+                              ? "red"
+                              : "transparent",
+                        }}
+                      ></span>
+                    )}
+                    {customer.name}
+                  </div>
+                </td>
+                <td
+                  className={`px-4 py-2 text-sm ${cellTextClass} flex items-center justify-center w-12`}
+                >
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    title={customer.email || ""}
+                    className="cursor-default hover:text-black dark:hover:text-black transition-colors"
+                  >
+                    <FiMail size={20} />
+                  </button>
+                </td>
+                <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                  {customer.phone}
+                </td>
+                <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                  {customer.address}
+                </td>
+                <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
+                  {customer.interested}
+                </td>
+                <td className={`px-4 py-2 text-sm ${cellTextClass} text-center`}>
+                  <div className="flex items-center justify-center space-x-2">
+                    {isOwner(customer) && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditCustomer(customer);
+                          }}
+                          title="Müşteriyi Düzenle"
+                          className="hover:text-black dark:hover:text-white transition-colors"
                         >
-                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
-                            {customer.ownerName}
-                          </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
-                            <span
-                              onClick={() => handleCustomerInfo(customer)}
-                              className="cursor-pointer hover:text-black dark:hover:text-white flex items-center"
-                            >
-                              {/* Only show status circle for customers with missedCall === false */}
-                              {!customer.missedCall && customer.durum && (
-                                <span
-                                  className="inline-block w-3 h-3 rounded-full mr-1"
-                                  style={{
-                                    backgroundColor:
-                                      customer.durum.toLowerCase() === "olumlu"
-                                        ? "green"
-                                        : customer.durum.toLowerCase() ===
-                                          "orta"
-                                        ? "orange"
-                                        : customer.durum.toLowerCase() ===
-                                          "olumsuz"
-                                        ? "red"
-                                        : "transparent",
-                                  }}
-                                ></span>
-                              )}
-                              {customer.name}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-2 text-sm ${cellTextClass} flex items-center justify-center w-12`}
-                          >
-                            <button
-                              title={customer.email || ""}
-                              className="cursor-default hover:text-black dark:hover:text-black transition-colors"
-                            >
-                              <FiMail size={20} />
-                            </button>
-                          </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
-                            {customer.phone}
-                          </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
-                            {customer.address}
-                          </td>
-                          <td className={`px-4 py-2 text-sm ${cellTextClass}`}>
-                            {customer.interested}
-                          </td>
-                          <td
-                            className={`px-4 py-2 text-sm ${cellTextClass} text-center`}
-                          >
-                            <div className="flex items-center justify-center space-x-2">
-                              {isOwner(customer) && (
-                                <>
-                                  <button
-                                    onClick={() => handleEditCustomer(customer)}
-                                    title="Müşteriyi Düzenle"
-                                    className="hover:text-black dark:hover:text-white transition-colors"
-                                  >
-                                    <FiEdit size={20} />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteCustomer(customer)
-                                    }
-                                    title="Müşteriyi Sil"
-                                    className="hover:text-black dark:hover:text-white transition-colors"
-                                  >
-                                    <FiTrash2 size={20} />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (
-                                        customer.reminderTimestamp &&
-                                        new Date(
-                                          customer.reminderTimestamp.seconds *
-                                            1000
-                                        ) > new Date()
-                                      ) {
-                                        openReminderModal(customer, "edit");
-                                      } else {
-                                        openReminderModal(customer, "new");
-                                      }
-                                    }}
-                                    title="Hatırlatma Ayarla"
-                                    className="hover:text-black dark:hover:text-white transition-colors"
-                                  >
-                                    <FiBell
-                                      size={20}
-                                      className={
-                                        customer.reminderTimestamp &&
-                                        new Date(
-                                          customer.reminderTimestamp.seconds *
-                                            1000
-                                        ) > new Date()
-                                          ? "text-yellow-500"
-                                          : "text-black dark:text-white"
-                                      }
-                                    />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedCustomerForAssign(customer);
-                                      setAssignUserModalOpen(true);
-                                    }}
-                                    title="Müşteriyi Delege Et"
-                                    className="hover:text-black dark:hover:text-white transition-colors"
-                                  >
-                                    <FiUserPlus size={20} />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedCallDateCustomer(customer);
-                                      setCallDateModalOpen(true);
-                                    }}
-                                    title="Yeni Arama Tarihi Ekle"
-                                    className="hover:text-black dark:hover:text-white transition-colors"
-                                  >
-                                    <FiPhone size={20} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-4 py-4 text-center text-black dark:text-white"
-                      >
-                        Müşteri bulunamadı.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                          <FiEdit size={20} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCustomer(customer);
+                          }}
+                          title="Müşteriyi Sil"
+                          className="hover:text-black dark:hover:text-white transition-colors"
+                        >
+                          <FiTrash2 size={20} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (
+                              customer.reminderTimestamp &&
+                              new Date(
+                                customer.reminderTimestamp.seconds * 1000
+                              ) > new Date()
+                            ) {
+                              openReminderModal(customer, "edit");
+                            } else {
+                              openReminderModal(customer, "new");
+                            }
+                          }}
+                          title="Hatırlatma Ayarla"
+                          className="hover:text-black dark:hover:text-white transition-colors"
+                        >
+                          <FiBell
+                            size={20}
+                            className={
+                              customer.reminderTimestamp &&
+                              new Date(
+                                customer.reminderTimestamp.seconds * 1000
+                              ) > new Date()
+                                ? "text-yellow-500"
+                                : "text-black dark:text-white"
+                            }
+                          />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCustomerForAssign(customer);
+                            setAssignUserModalOpen(true);
+                          }}
+                          title="Müşteriyi Delege Et"
+                          className="hover:text-black dark:hover:text-white transition-colors"
+                        >
+                          <FiUserPlus size={20} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCallDateCustomer(customer);
+                            setCallDateModalOpen(true);
+                          }}
+                          title="Yeni Arama Tarihi Ekle"
+                          className="hover:text-black dark:hover:text-white transition-colors"
+                        >
+                          <FiPhone size={20} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })
+        ) : (
+          <tr>
+            <td
+              colSpan={7}
+              className="px-4 py-4 text-center text-black dark:text-white"
+            >
+              Müşteri bulunamadı.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>  
             </div>
           </div>
         </div>
