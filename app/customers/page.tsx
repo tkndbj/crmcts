@@ -315,6 +315,8 @@ function CustomersPageContent() {
         if (form.callStatus === "cevapsiz") {
           // In "cevapsiz" mode, only phone and lastCallDate are used, and missedCall is true.
           await addDoc(collection(firestore, "customers"), {
+            name: form.name,          // now saved
+            email: form.email,        // now saved
             phone: form.phone,
             lastCallDate: form.lastCallDate,
             missedCall: true,

@@ -134,7 +134,7 @@ export default function CustomerFormModal({
                       name="name"
                       value={form.name}
                       onChange={handleInputChange}
-                      required
+                      required={form.callStatus === "cevapAlindi"}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                     />
                   </div>
@@ -206,7 +206,7 @@ export default function CustomerFormModal({
                   name="phone"
                   value={form.phone}
                   onChange={handleInputChange}
-                  required
+                  required={form.callStatus === "cevapAlindi"}
                   inputMode="numeric"
                   pattern="[0-9]*"
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -253,7 +253,7 @@ export default function CustomerFormModal({
                   placeholder="GG/AA/YYYY"
                   value={form.lastCallDate}
                   onChange={handleLastCallDateChange}
-                  required
+                  required={form.callStatus === "cevapAlindi"}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
@@ -322,7 +322,7 @@ export default function CustomerFormModal({
                       value={form.description}
                       onChange={handleInputChange}
                       rows={3}
-                      required
+                      required={form.callStatus === "cevapAlindi"}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
                     ></textarea>
                   </div>
