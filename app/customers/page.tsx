@@ -345,10 +345,13 @@ function CustomersPageContent() {
         const customerRef = doc(firestore, "customers", selectedCustomer.id);
         if (form.callStatus === "cevapsiz") {
           await updateDoc(customerRef, {
+            name: form.name,
+            email: form.email,
             phone: form.phone,
+            address: form.address,
             lastCallDate: form.lastCallDate,
-            missedCall: true,
-            description: form.description,
+            description: form.description,            
+            missedCall: true, // keep missedCall as true
             updatedAt: new Date().toISOString(),
           });
         } else {

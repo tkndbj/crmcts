@@ -55,17 +55,39 @@ export default function CustomerInfoModal({
               </h3>
             </div>
             {customer.missedCall ? (
-              <>
-                <p className="text-gray-700 dark:text-gray-300">
-                  <strong>Telefon:</strong> {customer.phone}
-                </p>
-                {customer.lastCallDate && (
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>İlk Arama Tarihi:</strong> {customer.lastCallDate}
-                  </p>
-                )}
-              </>
-            ) : (
+  <>
+    <p className="text-gray-700 dark:text-gray-300">
+      <strong>Telefon:</strong> {customer.phone}
+    </p>
+    {customer.email && (
+      <p className="text-gray-700 dark:text-gray-300">
+        <strong>E-posta:</strong> {customer.email}
+      </p>
+    )}
+    {customer.lastCallDate && (
+      <p className="text-gray-700 dark:text-gray-300">
+        <strong>İlk Arama Tarihi:</strong> {customer.lastCallDate}
+      </p>
+    )}
+    {customer.description && (
+      <div className="bg-gray-100 p-2 rounded text-gray-700 dark:text-black mt-2">
+        {customer.description}
+      </div>
+    )}
+    {customer.callDates && customer.callDates.length > 0 && (
+      <div className="mt-2">
+        <p className="text-gray-700 dark:text-white">
+          <strong>Tekrardan Arama Tarihleri:</strong>
+        </p>
+        <ul className="list-disc ml-4 text-emerald-500">
+          {customer.callDates.map((date: string, index: number) => (
+            <li key={index}>{date}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </>
+) : (
               <>
                 {customer.name && (
                   <p className="text-gray-700 dark:text-gray-300">
